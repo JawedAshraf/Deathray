@@ -29,7 +29,7 @@ void Filter4(
 	int sample_radius = kernel_radius * sample_expand;
 
 	int2 sample_start = max(target - sample_radius, 3);
-	int2 sample_end	  = {min(target.x + sample_radius, 41), min(target.y + sample_radius, 44)};
+	int2 sample_end	  = (int2)(min(target.x + sample_radius, 41), min(target.y + sample_radius, 44));
 
 	float4 sample_centre_pixel;
 	float4 weight_max = 0.f;
