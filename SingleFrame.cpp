@@ -73,7 +73,7 @@ result SingleFrame::Init(
 		return FILTER_OK;
 	}
 
-	return FILTER_ERROR;
+	return FILTER_KERNEL_ARGUMENT_ERROR;
 }
 
 result SingleFrame::CopyTo(const unsigned char *source) {

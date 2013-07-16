@@ -66,7 +66,7 @@ result MultiFrame::Init(
 result MultiFrame::InitBuffers() {
 	result status = FILTER_OK;
 
-	// Buffer is sized upwards to the next highest multiple of 64 - TODO explain why it's not 32, when I work that out...
+	// Buffer is sized upwards to the next highest multiple of 32
 	// horizontally and vertically because tile size is 32x32
 	intermediate_width_ = ByPowerOf2(width_, 5) >> 2;
 	intermediate_height_ = ByPowerOf2(height_, 5);
@@ -106,10 +106,10 @@ result MultiFrame::InitKernels(const int &sample_expand) {
 	}
 
 	finalise_kernel_ = CLKernel(device_id_, "NLMFinalise");
-	finalise_kernel_.SetArg(sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(averages_));
-	finalise_kernel_.SetArg(sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_));
-	finalise_kernel_.SetArg(sizeof(int), &intermediate_width_);
-	finalise_kernel_.SetArg(sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(dest_plane_));
+	finalise_kernel_.SetNumberedArg(1, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(averages_));
+	finalise_kernel_.SetNumberedArg(2, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_));
+	finalise_kernel_.SetNumberedArg(3, sizeof(int), &intermediate_width_);
+	finalise_kernel_.SetNumberedArg(4, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(dest_plane_));
 
 	if (finalise_kernel_.arguments_valid()) {
 		finalise_kernel_.set_work_dim(2);
@@ -219,6 +219,7 @@ result MultiFrame::Execute() {
 		if (status != FILTER_OK) return status;
 	}
 
+	finalise_kernel_.SetNumberedArg(0, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(target_frame_plane));
 	status = finalise_kernel_.ExecuteWaitList(cq_, frames_.size(), filter_events, &executed_);
 	if (status != FILTER_OK) return status;
 
