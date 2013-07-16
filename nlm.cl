@@ -37,7 +37,7 @@ void Filter4(
 	for (sample.y = sample_start.y; sample.y <= sample_end.y; ++sample.y) {
 		for (sample.x = sample_start.x; sample.x <= sample_end.x; ++sample.x) {
 			int gaussian_position = 0;
-			float4 euclidean_distance = 0;
+			float4 euclidean_distance = 0.f;
 			int target_row = 0;
 			for (int y = -kernel_radius; y < kernel_radius + 1; ++y, ++target_row) {
 				float16 sample_window_row = ReadTile16(sample.x - kernel_radius,

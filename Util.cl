@@ -5,10 +5,7 @@
  * Copyright 2011, Jawed Ashraf - Deathray@cupidity.f9.co.uk
  */
 
-// TODO Make this a compiler+user option
-#define TILE_SIDE 53 // preferred // TODO CLEANUP
-//#define TILE_SIDE 59 // pretty much equal best on HD5870 
-//#define TILE_SIDE 48 // default, ~6% slower on HD5870
+#define TILE_SIDE 53
 
 __kernel void Zero(__global float4 *A) {
     int pos = get_global_id(0);
@@ -113,16 +110,15 @@ uint4 Pack10PixelsIntoTargetRow(float16 sixteen_pixels) {
 void Coordinates32x32(
 	int2 *local_id,	// Work item
 	int2 *source) {	// Each work item processes 4 pixels from source as a single row uchar4/float4
+
 	// Generate coordinates for use by a variety of kernels based upon
 	// a tile size of 32x32 pixels.
 
 	// The 32x32 tile's top-left position in the plane, in uchar4s
-	int2 tile_top_left = {get_group_id(0) << 3, get_group_id(1) << 5};
+	int2 tile_top_left = (int2)(get_group_id(0) << 3, get_group_id(1) << 5);
 
-	(*local_id).x = get_local_id(0);
-	(*local_id).y = get_local_id(1);
-	(*source).x = tile_top_left.x + (*local_id).x; // TODO combine into one line, now that they're not being scaled separately
-	(*source).y = tile_top_left.y + (*local_id).y;
+	*local_id = (int2)(get_local_id(0), get_local_id(1));
+	*source = tile_top_left + *local_id; 
 }
 
 void FetchAndMirror48x48(
@@ -141,36 +137,36 @@ void FetchAndMirror48x48(
 	// four edges of the frame the apron is filled, instead, with 
 	// pixels mirrored from just inside the frame.
 
-	const sampler_t plane = CLK_NORMALIZED_COORDS_FALSE | // TODO rename plane
+	const sampler_t plane = CLK_NORMALIZED_COORDS_FALSE |
 							CLK_ADDRESS_CLAMP |
 							CLK_FILTER_NEAREST;
 
-	float4 source_pixel = read_imagef(target_plane, plane, source);
+	float4 source_pixels = read_imagef(target_plane, plane, source);
 
 	write_mem_fence(CLK_LOCAL_MEM_FENCE);		
 
 	// Scalar address for left-most pixel of 4 pixels that are put into tile
-	int2 target = {(local_id.x << 2) + 8, local_id.y + 8};
+	int2 target = (int2)((local_id.x << 2) + 8, local_id.y + 8);
 
-	WriteTile4(source_pixel, target.x, target.y, tile);
+	WriteTile4(source_pixels, target.x, target.y, tile);
 	
 	if (local_id.y < 8 || local_id.y > 23) { // 8 top and bottom rows of apron are filled from adjacent tiles
 		int offset = (local_id.y < 8) ? -8 : 8;
-		source_pixel = read_imagef(target_plane, plane, source + (int2)(0, offset));
-		WriteTile4(source_pixel, target.x, target.y + offset, tile); 
+		source_pixels = read_imagef(target_plane, plane, source + (int2)(0, offset));
+		WriteTile4(source_pixels, target.x, target.y + offset, tile); 
 	}	
 	if (local_id.x < 2 || local_id.x > 5) { // 8 columns at left and right
 		int offset = (local_id.x < 2) ? -2 : 2;
-		source_pixel = read_imagef(target_plane, plane, source + (int2)(offset, 0));
-		WriteTile4(source_pixel, target.x + (offset << 2), target.y, tile); 
+		source_pixels = read_imagef(target_plane, plane, source + (int2)(offset, 0));
+		WriteTile4(source_pixels, target.x + (offset << 2), target.y, tile); 
 	}	
 	if (local_id.y < 8 || local_id.y > 23) { // 4 corners, each 8x8
 		int2 offset;
 		offset.y = (local_id.y < 8) ? -8 : 8;
 		if (local_id.x < 2 || local_id.x > 5) {
 			offset.x = (local_id.x < 2) ? -2 : 2;
-			source_pixel = read_imagef(target_plane, plane, source + offset);
-			WriteTile4(source_pixel, target.x + (offset.x << 2), target.y + offset.y, tile);
+			source_pixels = read_imagef(target_plane, plane, source + offset);
+			WriteTile4(source_pixels, target.x + (offset.x << 2), target.y + offset.y, tile);
 		}
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
