@@ -1,0 +1,56 @@
+Deathray compilation
+====================
+
+The project was created with Visual Studio 2008.
+
+Ensure that the OpenCL SDK paths match the location of the SDK on your system.
+ 
+The ATI Stream SDK 2.3 was used to make the project. Environment variables based 
+on that SDK are in the project's properties. These should ensure that paths 
+match on your system if you are using the ATI Stream SDK.
+
+For other SDKs you will need to supply the appropriate paths in:
+
+C++ 
+---
+
+Additional Include Directories, option /I
+
+
+Linker
+------
+
+Additional Library Directories, option /LIBPATH
+Additional Dependencies
+
+If in doubt examine these settings from a sample project that was installed
+as part of the SDK that you are using.
+
+
+Note on Compilation of OpenCL Kernels
+=====================================
+
+The text of the OpenCL kernels is found in project files whose extension is
+.CL. These files are "compiled" by Visual Studio into the DLL as resources.
+
+Any changes to the code in these source files requires that Visual Studio
+re-compiles the resources. This consists of right-clicking on Deathray.rc
+and choosing the option "Compile".
+
+The resources then need to be linked into the DLL, so link Deathray.
+
+
+Note on OpenCL Debugging
+========================
+
+It is easiest to use AMD's Stream Kernel Analyzer to check for compilation
+errors in OpenCL code. Copy all the code from the following files, in this 
+order, into SKA's Source Code pane:
+
+ - Util.cl 
+ - nlm.cl
+ - SingleFrameNLM.cl
+ - MultiFrameNLM.cl
+
+By default SKA detects that the code is OpenCL and invokes the SDK's OpenCL
+compiler with all of its output directed to the lowest pane.
