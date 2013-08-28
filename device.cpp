@@ -12,53 +12,17 @@
 
 device::device() {
 	id_ = NULL;
-	cq_ = NULL;
-	ready_ = false;
 }
 
 device::~device(void) {
-	if (ready_)	DeleteCommandQueue();
+	buffers_.DestroyAll();
 } 
 
-result device::Init(const cl_device_id &single_device) {
+void device::Init(const cl_device_id &single_device) {
 	id_ = single_device;
-
-	cl_int status;
-
-	cq_ = clCreateCommandQueue(g_context, 
-							   id_, 
-							   CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-							   &status);
-
-	if (status == CL_SUCCESS) { 
-		ready_ = true;
-		return FILTER_OK;
-	} else {
-		ready_ = false;
-		return FILTER_ERROR;
-	}
 }
 
-result device::DeleteCommandQueue() {
-	// The command queue can't actually be deleted. It can only have its
-	// reference count reduced, and it will delete itself when it 
-	// sees that its reference count hits zero.
-	// So return an error if cq_ exists after release.
-	if (ready_)	{
-		buffers_.DestroyAll();
-		clReleaseCommandQueue(cq_);
-	}
-
-	if (cq_ == NULL) { // TODO check if it's correct that cq_ is set to NULL when it is released
-		ready_ = false;
-		return FILTER_OK;
-	} else {
-		ready_ = true;
-		return FILTER_ERROR;
-	}
-}
-
-result device::KernelInit(const cl_program &program, const size_t &kernel_count, const string* kernels) {
+result device::KernelInit(const cl_program &program, const size_t &kernel_count, const string *kernels) {
 	cl_int status = CL_SUCCESS;
 
 	program_ = program;
@@ -74,26 +38,21 @@ result device::KernelInit(const cl_program &program, const size_t &kernel_count,
 	return FILTER_OK;
 }
 
-cl_kernel device::kernel(const string& kernel) {
+cl_kernel device::kernel(const string &kernel) {
 	return kernel_[kernel];
 }
 
-cl_kernel device::NewKernelInstance(const string& kernel) {
+cl_kernel device::NewKernelInstance(const string &kernel) {
 	return clCreateKernel(program_, kernel.c_str(), NULL);
 }
 
 cl_command_queue device::cq() {
 
 	cl_command_queue new_cq = clCreateCommandQueue(g_context, 
-						   id_, 
-						   CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-						   NULL);
+												   id_, 
+												   CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+												   NULL);
 
 	return new_cq;
 }
-
-bool device::ready() {
-	return ready_; // TODO consider querying cq_ != NULL instead
-}
-
 

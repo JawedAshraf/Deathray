@@ -20,31 +20,23 @@
 // The DLL uses a global array of pointers to this class, g_devices. Each object
 // is constructed in an undefined state. 
 //
-// Init must be used first. This creates an OpenCL command queue
-// for the device which must be used exclusively for all library
-// functions that access the device.
+// Init must be used first.
 class device {
 public:
 
 	// Constructor
 	// Always constructed in an undefined state.
-	// User must create an array of device objects
+	// Client must create an array of device objects
 	// before configuring each one individually.
 	device::device();	
 
 	// Destructor
-	// Tries to clean-up by deleting the command queue first,
-	// but this is not guaranteed. DeleteCommandQueue should
-	// return successfully before deleting the object.
+	// Deletes extant buffers
 	~device();
 
 	// Init
 	// Record the new device and create a command queue for it
-	result Init(const cl_device_id &single_device);
-
-	// DeleteCommandQueue
-	// Tries to delete the command queue.
-	result DeleteCommandQueue();
+	void Init(const cl_device_id &single_device);
 
 	// KernelInit
 	// Compile the set of kernels for the device
@@ -57,7 +49,7 @@ public:
 	// For clients that want to set up a kernel along with its arguments
 	// and enqueue it immediately, the globally shared instance of the
 	// kernel can be used. It is not thread safe.
-	cl_kernel kernel(const string& kernel);
+	cl_kernel kernel(const string &kernel);
 
 	// NewKernelInstance
 	// Returns an independent instance of a kernel. This allows
@@ -65,7 +57,7 @@ public:
 	// whilst having independent arguments. This avoids the 
 	// race condition that otherwise exists when multiple threads
 	// or objects set arguments on a named kernel, concurrently.
-	cl_kernel NewKernelInstance(const string& kernel);
+	cl_kernel NewKernelInstance(const string &kernel);
 
 	// cq
 	// Returns a new command queue. 
@@ -73,16 +65,10 @@ public:
 	// used exclusively by the object that calls this method.
 	cl_command_queue		cq();
 
-	// ready
-	// Device is ready to be used.
-	bool					ready();
-
 	buffer_map				buffers_;	// set of buffers on the device - TODO make private and create methods in this class
 
 private:
 	cl_device_id			id_;		// sequence number of the device
-	cl_command_queue		cq_;		// TODO delete
-	bool					ready_;		// readiness of device
 	map<string, cl_kernel>	kernel_;	// set of kernel objects that have been pre-compiled
 	cl_program				program_;	// program object used to generate new instances of named kernels
 };

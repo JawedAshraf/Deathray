@@ -23,6 +23,7 @@ public:
 	// Returns the OpenCL memory buffer. Used to manipulate the 
 	// OpenCL mem object.
 	cl_mem obj();
+
 	// ptr
 	// Pointer for the memory buffer. Used when setting arguments for
 	// a kernel call.

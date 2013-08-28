@@ -22,7 +22,7 @@ result buffer_map::Append(mem **new_mem, int *new_index) {
 	pair<map<int, mem*>::iterator, bool> insertionStatus;
 
 	*new_index = NewIndex();
-	insertionStatus = buffer_map_.insert (pair<int, mem*> (*new_index, *new_mem));
+	insertionStatus = buffer_map_.insert(pair<int, mem*>(*new_index, *new_mem));
 
 	if (insertionStatus.second)
 		return FILTER_OK; 
@@ -40,11 +40,11 @@ result buffer_map::AllocBuffer(
 	buffer *new_float_buffer = new buffer;
 	new_float_buffer->Init(cq, bytes);
 	if (new_float_buffer->valid()) {
-		mem* new_mem = new_float_buffer;
+		mem *new_mem = new_float_buffer;
 		status = Append(&new_mem, new_index);
 		return status;
 	} else {
-		return FILTER_ERROR;
+		return FILTER_BUFFER_ALLOCATION_FAILED;
 	}
 }
 
@@ -63,7 +63,7 @@ result buffer_map::CopyFromBuffer(
 	const	size_t	&bytes,	 		
 			void	*host_buffer) {
 
-	buffer* source;
+	buffer *source;
 	source = static_cast<buffer*>(buffer_map_[index]);
 	return source->CopyFrom(bytes, host_buffer);
 }
@@ -76,14 +76,14 @@ result buffer_map::AllocPlane(
 
 	result status = FILTER_OK;
 
-	plane* new_plane = new plane;
+	plane *new_plane = new plane;
 	new_plane->Init(cq, width, height, 2, 0);
 	if (new_plane->valid()) {
-		mem* new_mem = new_plane;
+		mem *new_mem = new_plane;
 		status = Append(&new_mem, new_index);
 		return status;
 	} else {
-		return FILTER_ERROR;
+		return FILTER_PLANE_ALLOCATION_FAILED;
 	}
 }
 
@@ -94,7 +94,7 @@ result buffer_map::CopyToPlane(
 	const	int		&host_rows,	 			
 	const	int		&host_pitch) {
 
-	plane* destination;
+	plane *destination;
 	destination = static_cast<plane*>(buffer_map_[index]);
 	return destination->CopyTo(host_buffer, host_cols, host_rows, host_pitch);
 }
@@ -107,7 +107,7 @@ result buffer_map::CopyToPlaneAsynch(
 	const	int			&host_pitch,
 			cl_event	*event) {
 
-	plane* destination;
+	plane *destination;
 	destination = static_cast<plane*>(buffer_map_[index]);
 	return destination->CopyToAsynch(host_buffer, host_cols, host_rows, host_pitch, event);
 }
@@ -119,7 +119,7 @@ result buffer_map::CopyFromPlane(
 	const	int		&host_pitch,
 			byte	*host_buffer) {
 
-	plane* source;
+	plane *source;
 	source = static_cast<plane*>(buffer_map_[index]);
 	return source->CopyFrom(host_cols, host_rows, host_pitch, host_buffer);
 }
@@ -133,7 +133,7 @@ result buffer_map::CopyFromPlaneAsynch(
 			cl_event	*event,
 			byte		*host_buffer) {
 
-	plane* source;
+	plane *source;
 	source = static_cast<plane*>(buffer_map_[index]);
 	return source->CopyFromAsynch(host_cols, host_rows, host_pitch, antecedent, event, host_buffer);
 }

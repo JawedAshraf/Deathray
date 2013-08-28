@@ -21,6 +21,8 @@ int		g_device_count	= 0;
 bool	g_opencl_available = false;
 bool	g_opencl_failed_to_initialise = false;
 
+FILE *g_stream;
+
 // Buffer containing the gaussian weights
 int g_gaussian = 0;
 
@@ -38,10 +40,8 @@ void GaussianGenerator(float sigma) {
 	float gaussian[49]; 
 	float gaussian_sum = 0;
 
-	for (int y = -3; y < 4; ++y)
-	{
-		for (int x = -3; x < 4; ++x)
-		{
+	for (int y = -3; y < 4; ++y) {
+		for (int x = -3; x < 4; ++x) {
 			int index = 7 * (y + 3) + x + 3;
 			gaussian[index] = exp(-(x * x + y * y) / two_sigma_squared) / (3.14159265f * two_sigma_squared);
 			gaussian_sum += gaussian[index];
@@ -70,6 +70,9 @@ deathray::deathray(PClip child,
 												sigma_(static_cast<float>(sigma)),
 												sample_expand_(sample_expand),
 												env_(env){
+
+	g_stream = freopen("Deathray.log", "w", stderr) ;
+
 }
 
 result deathray::Init() {
@@ -96,11 +99,11 @@ result deathray::SetupFilters() {
 
 	if ((temporal_radius_Y_ == 0 && h_Y_ > 0.f) || (temporal_radius_UV_ == 0 && h_UV_ > 0.f)) {
 		status = SingleFrameInit();
-		if (status != FILTER_OK) env_->ThrowError("Single-frame initialisation failed, status=%d", status);	
+		if (status != FILTER_OK) env_->ThrowError("Single-frame initialisation failed, status=%d and OpenCL status=%d", status, g_last_cl_error);	
 	}
 	if ((temporal_radius_Y_ > 0 && h_Y_ > 0.f) || (temporal_radius_UV_ > 0 && h_UV_ > 0.f)) {
 		status = MultiFrameInit();
-		if (status != FILTER_OK) env_->ThrowError("Multi-frame initialisation failed, status=%d", status);	
+		if (status != FILTER_OK) env_->ThrowError("Multi-frame initialisation failed, status=%d and OpenCL status=%d", status, g_last_cl_error);	
 	}	
 
 	return status;
@@ -121,7 +124,7 @@ PVideoFrame __stdcall deathray::GetFrame(int n, IScriptEnvironment *env) {
 	status = Init();
 	if (status != FILTER_OK || !(vi.IsPlanar())) { 
 		if (g_opencl_failed_to_initialise) {
-			env->ThrowError("Deathray: Error in OpenCL status=%d frame %d", status, n);
+			env->ThrowError("Deathray: Error in OpenCL status=%d frame %d and OpenCL status=%d", status, n, g_last_cl_error);
 		} else {
 			env->ThrowError("Deathray: Check that clip is planar format - status=%d frame %d", status, n);
 		}
@@ -195,32 +198,32 @@ void deathray::SingleFrameExecute() {
 
 	if (temporal_radius_Y_ == 0 && h_Y_ > 0.f) {
 		status = g_SingleFrame_Y.CopyTo(srcpY_);
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy Y to device status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy Y to device status=%d and OpenCL status=%d", status, g_last_cl_error);
 	}
 	if (temporal_radius_UV_ == 0 && h_UV_ > 0.f) {
 		status = g_SingleFrame_U.CopyTo(srcpU_);
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy U to device status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy U to device status=%d and OpenCL status=%d", status, g_last_cl_error);
 		status = g_SingleFrame_V.CopyTo(srcpV_);
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy V to device status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy V to device status=%d and OpenCL status=%d", status, g_last_cl_error);
 	}
 
 	if (temporal_radius_Y_ == 0 && h_Y_ > 0.f) {
 		status = g_SingleFrame_Y.Execute();
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute Y kernel status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute Y kernel status=%d and OpenCL status=%d", status, g_last_cl_error);
 		status = g_SingleFrame_Y.CopyFrom(dstpY_, wait_list);
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy Y to host status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy Y to host status=%d and OpenCL status=%d", status, g_last_cl_error);
 		++wait_list_length;
 	}
 
 	if (temporal_radius_UV_ == 0 && h_UV_ > 0.f) {
 		g_SingleFrame_U.Execute();
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute U kernel status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute U kernel status=%d and OpenCL status=%d", status, g_last_cl_error);
 		g_SingleFrame_U.CopyFrom(dstpU_, wait_list + wait_list_length++);
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy U to host status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy U to host status=%d and OpenCL status=%d", status, g_last_cl_error);
 		g_SingleFrame_V.Execute();
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute V kernel status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute V kernel status=%d and OpenCL status=%d", status, g_last_cl_error);
 		g_SingleFrame_V.CopyFrom(dstpV_, wait_list + wait_list_length++);
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy V to host status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy V to host status=%d and OpenCL status=%d", status, g_last_cl_error);
 	}
 
 	clWaitForEvents(wait_list_length, wait_list);
@@ -258,7 +261,7 @@ void deathray::MultiFrameCopy(const int &n) {
 			frames_Y.Supply(frame_number, ptr_Y);
 		}
 		status = g_MultiFrame_Y.CopyTo(&frames_Y);
-		if (status != FILTER_OK ) env_->ThrowError("Deathray: Copy Y to device, status=%d", status);
+		if (status != FILTER_OK ) env_->ThrowError("Deathray: Copy Y to device, status=%d and OpenCL status=%d", status, g_last_cl_error);
 	}
 
 	if (temporal_radius_UV_ > 0 && h_UV_ > 0.f) {
@@ -274,9 +277,9 @@ void deathray::MultiFrameCopy(const int &n) {
 			frames_V.Supply(frame_number, ptr_V);
 		}
 		status = g_MultiFrame_U.CopyTo(&frames_U);
-		if (status != FILTER_OK ) env_->ThrowError("Deathray: Copy U to device, status=%d", status);
+		if (status != FILTER_OK ) env_->ThrowError("Deathray: Copy U to device, status=%d and OpenCL status=%d", status, g_last_cl_error);
 		status = g_MultiFrame_V.CopyTo(&frames_V);
-		if (status != FILTER_OK ) env_->ThrowError("Deathray: Copy V to device, status=%d", status);
+		if (status != FILTER_OK ) env_->ThrowError("Deathray: Copy V to device, status=%d and OpenCL status=%d", status, g_last_cl_error);
 	}
 }
 
@@ -289,21 +292,21 @@ void deathray::MultiFrameExecute(const int &n) {
 
 	if (temporal_radius_Y_ > 0 && h_Y_ > 0.f) {
 		status = g_MultiFrame_Y.Execute();
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute Y kernel status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute Y kernel status=%d and OpenCL status=%d", status, g_last_cl_error);
 		status = g_MultiFrame_Y.CopyFrom(dstpY_, wait_list);
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy Y to host status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy Y to host status=%d and OpenCL status=%d", status, g_last_cl_error);
 		++wait_list_length;
 	}
 
 	if (temporal_radius_UV_ > 0 && h_UV_ > 0.f) {
 		g_MultiFrame_U.Execute();
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute U kernel status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute U kernel status=%d and OpenCL status=%d", status, g_last_cl_error);
 		g_MultiFrame_U.CopyFrom(dstpU_, wait_list + wait_list_length++);
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy U to host status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy U to host status=%d and OpenCL status=%d", status, g_last_cl_error);
 		g_MultiFrame_V.Execute();
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute V kernel status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Execute V kernel status=%d and OpenCL status=%d", status, g_last_cl_error);
 		g_MultiFrame_V.CopyFrom(dstpV_, wait_list + wait_list_length++);
-		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy V to host status=%d", status);
+		if (status != FILTER_OK) env_->ThrowError("Deathray: Copy V to host status=%d and OpenCL status=%d", status, g_last_cl_error);
 	}
 
 	clWaitForEvents(wait_list_length, wait_list);

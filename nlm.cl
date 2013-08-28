@@ -29,7 +29,7 @@ void Filter4(
 	int sample_radius = kernel_radius * sample_expand;
 
 	int2 sample_start = max(target - sample_radius, 3);
-	int2 sample_end	  = {min(target.x + sample_radius, 41), min(target.y + sample_radius, 44)};
+	int2 sample_end	  = (int2)(min(target.x + sample_radius, 41), min(target.y + sample_radius, 44));
 
 	float4 sample_centre_pixel;
 	float4 weight_max = 0.f;
@@ -37,7 +37,7 @@ void Filter4(
 	for (sample.y = sample_start.y; sample.y <= sample_end.y; ++sample.y) {
 		for (sample.x = sample_start.x; sample.x <= sample_end.x; ++sample.x) {
 			int gaussian_position = 0;
-			float4 euclidean_distance = 0;
+			float4 euclidean_distance = 0.f;
 			int target_row = 0;
 			for (int y = -kernel_radius; y < kernel_radius + 1; ++y, ++target_row) {
 				float16 sample_window_row = ReadTile16(sample.x - kernel_radius,

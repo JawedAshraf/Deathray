@@ -80,7 +80,7 @@ result GetPlatform(cl_platform_id* platform) {
 	status = clGetPlatformIDs(0, NULL, &platform_count);
 	if (status != CL_SUCCESS) {
 		g_last_cl_error = status;
-		return FILTER_ERROR;
+		return FILTER_NO_PLATFORM;
 	}
 
 	if (platform_count > 0)	{
@@ -89,14 +89,14 @@ result GetPlatform(cl_platform_id* platform) {
 		status = clGetPlatformIDs(platform_count, platforms, NULL);
 		if (status != CL_SUCCESS) {
 			g_last_cl_error = status;
-			return FILTER_ERROR;
+			return FILTER_NO_PLATFORM;
 		}
 
 		*platform = platforms[0];
 		return FILTER_OK;		
 	} 
 
-	return FILTER_ERROR;
+	return FILTER_NO_PLATFORM;
 }
 
 result SetContext(const cl_platform_id &platform) {
@@ -112,7 +112,7 @@ result SetContext(const cl_platform_id &platform) {
 									    &status);
 	if (status != CL_SUCCESS) {  
 		g_last_cl_error = status;
-		return FILTER_ERROR;
+		return FILTER_NO_CONTEXT;
 	}
 
 	return FILTER_OK;		
@@ -120,11 +120,11 @@ result SetContext(const cl_platform_id &platform) {
 
 result GetDeviceCount(int* device_count) {	
 	if (g_context == NULL) {
-		return FILTER_ERROR;
+		return FILTER_NO_CONTEXT;
 	}
 
 	cl_int	status = CL_SUCCESS;
-
+#if 0
 	status = clGetContextInfo(g_context, 
 							  CL_CONTEXT_NUM_DEVICES, 
 							  sizeof(cl_uint),
@@ -133,8 +133,10 @@ result GetDeviceCount(int* device_count) {
 
 	if (status != CL_SUCCESS) {  
 		g_last_cl_error = status;
-		return FILTER_ERROR;
+		return FILTER_CONTEXT_NUMBER_DEVICES_FAILED;
 	}
+#endif
+	*device_count = 1;
 	return FILTER_OK;		
 }
 
@@ -143,7 +145,7 @@ result GetDeviceList(cl_device_id** devices) {
 	// first for size of return object, then the object
 	
 	if (g_context == NULL) {
-		return FILTER_ERROR;
+		return FILTER_NO_CONTEXT;
 	}
 
 	cl_int cl_status = CL_SUCCESS;
@@ -152,16 +154,16 @@ result GetDeviceList(cl_device_id** devices) {
 	cl_status = clGetContextInfo(g_context, CL_CONTEXT_DEVICES, 0, NULL, &device_list_size);
 	if (cl_status != CL_SUCCESS) {  
 		g_last_cl_error = cl_status;
-		return FILTER_ERROR;
+		return FILTER_DEVICE_LIST_NOT_FOUND;
 	}
 	*devices = static_cast<cl_device_id*>(malloc(device_list_size));
 	if (*devices == NULL) {
-		return FILTER_ERROR;
+		return FILTER_MALLOC_FAILURE;
 	}
 	cl_status = clGetContextInfo(g_context, CL_CONTEXT_DEVICES, device_list_size, *devices, NULL);
 	if (cl_status != CL_SUCCESS) {  
 		g_last_cl_error = cl_status;
-		return FILTER_ERROR;
+		return FILTER_NO_DEVICES_FOUND;
 	}
 	return FILTER_OK;		
 }
@@ -215,11 +217,11 @@ result CompileAll(const int &device_count, const cl_device_id &devices) {
 												   &cl_status);
 	if (cl_status != CL_SUCCESS) {  
 		g_last_cl_error = cl_status;
-		return FILTER_ERROR;
+		return FILTER_OPENCL_COMPILATION_FAILED;
 	}
 
 	cl_status = clBuildProgram(program, device_count, &devices, "-cl-fast-relaxed-math", NULL, NULL);
-	if (cl_status != CL_SUCCESS) {  // TODO remove most of this
+	if (cl_status != CL_SUCCESS) {
 		g_last_cl_error = cl_status;
 		size_t build_log_size;
 		clGetProgramBuildInfo(program, devices, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
@@ -227,7 +229,7 @@ result CompileAll(const int &device_count, const cl_device_id &devices) {
 		clGetProgramBuildInfo(program, devices, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 		fprintf(stderr, build_log);
 		free(build_log);
-		return FILTER_ERROR;
+		return FILTER_OPENCL_KERNEL_DEVICE_BUILD_FAILED;
 	}
 
 	const int kernel_count = 4;
@@ -239,7 +241,7 @@ result CompileAll(const int &device_count, const cl_device_id &devices) {
 	for (int i = 0; i < device_count; ++i) {
 		status = g_devices[i].KernelInit(program, kernel_count, &(kernels[0]));
 		if (status != FILTER_OK) {
-			fprintf(stderr, "Failed while initialising device %d\n", i); // TODO remove
+			fprintf(stderr, "Failed while initialising device %d\n", i);
 			return status;
 		}
 	}
@@ -273,7 +275,7 @@ result StartOpenCL(int *device_count) {
 	}
 
 	if (*device_count == 0 || devices == NULL) {
-		return FILTER_ERROR ;
+		return FILTER_NO_GPUS_FOUND;
 	}
 
 	// Populate the global array of device objects with the devices
@@ -281,10 +283,7 @@ result StartOpenCL(int *device_count) {
 	g_device_count = *device_count;
 	g_devices = new device[g_device_count];
 	for (int i = 0; i < g_device_count; ++i) {
-		status = g_devices[i].Init((cl_device_id&)devices[i]); // TODO static_cast?
-		if (status != FILTER_OK) {
-			return status;
-		}
+		g_devices[i].Init(static_cast<const cl_device_id&>(devices[i]));
 	}
 
 	status = CompileAll((g_device_count), static_cast<const cl_device_id&>(*devices)) ;

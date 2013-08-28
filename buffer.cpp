@@ -90,7 +90,7 @@ result buffer::CopyTo(
 									 NULL);
 	if (cl_status != CL_SUCCESS) {  
 		g_last_cl_error = cl_status;
-		return FILTER_ERROR;
+		return FILTER_COPYING_TO_BUFFER_FAILED;
 	}
 
 	valid_ = true;
@@ -117,7 +117,7 @@ result buffer::CopyFrom(
 									NULL);
 	if (cl_status != CL_SUCCESS) {  
 		g_last_cl_error = cl_status;
-		return FILTER_ERROR;
+		return FILTER_COPYING_FROM_BUFFER_FAILED;
 	}
 	return FILTER_OK;
 }
