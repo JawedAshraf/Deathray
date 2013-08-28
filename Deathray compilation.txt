@@ -1,13 +1,14 @@
 Deathray compilation
 ====================
 
-The project was created with Visual Studio 2008.
+The project was created with Visual Studio 2008 and updated with VS2012
+Express Edition.
 
 Ensure that the OpenCL SDK paths match the location of the SDK on your system.
  
-The ATI Stream SDK 2.3 was used to make the project. Environment variables based 
+The AMD APP SDK 2.8 was used to make the project. Environment variables based 
 on that SDK are in the project's properties. These should ensure that paths 
-match on your system if you are using the ATI Stream SDK.
+match on your system if you are using the AMD APP SDK.
 
 For other SDKs you will need to supply the appropriate paths in:
 
@@ -43,14 +44,11 @@ The resources then need to be linked into the DLL, so link Deathray.
 Note on OpenCL Debugging
 ========================
 
-It is easiest to use AMD's Stream Kernel Analyzer to check for compilation
+It is easiest to use AMD's APP Kernel Analyzer2 to check for compilation
 errors in OpenCL code. Copy all the code from the following files, in this 
-order, into SKA's Source Code pane:
+order, into Kernel Analyzer's Source Code pane:
 
  - Util.cl 
  - nlm.cl
  - SingleFrameNLM.cl
  - MultiFrameNLM.cl
-
-By default SKA detects that the code is OpenCL and invokes the SDK's OpenCL
-compiler with all of its output directed to the lowest pane.
