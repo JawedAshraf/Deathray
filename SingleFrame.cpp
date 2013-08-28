@@ -1,8 +1,8 @@
 /* Deathray - An Avisynth plug-in filter for spatial/temporal non-local means de-noising.
  *
- * version 1.00
+ * version 1.01
  *
- * Copyright 2011, Jawed Ashraf - Deathray@cupidity.f9.co.uk
+ * Copyright 2013, Jawed Ashraf - Deathray@cupidity.f9.co.uk
  */
 
 #include "SingleFrame.h"
