@@ -227,7 +227,6 @@ result CompileAll(const int &device_count, const cl_device_id &devices) {
 		clGetProgramBuildInfo(program, devices, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 		char* build_log = static_cast<char*>(malloc(build_log_size * sizeof(char)));
 		clGetProgramBuildInfo(program, devices, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
-		fprintf(stderr, build_log);
 		free(build_log);
 		return FILTER_OPENCL_KERNEL_DEVICE_BUILD_FAILED;
 	}
@@ -241,7 +240,6 @@ result CompileAll(const int &device_count, const cl_device_id &devices) {
 	for (int i = 0; i < device_count; ++i) {
 		status = g_devices[i].KernelInit(program, kernel_count, &(kernels[0]));
 		if (status != FILTER_OK) {
-			fprintf(stderr, "Failed while initialising device %d\n", i);
 			return status;
 		}
 	}

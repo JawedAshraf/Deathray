@@ -21,8 +21,6 @@ int		g_device_count	= 0;
 bool	g_opencl_available = false;
 bool	g_opencl_failed_to_initialise = false;
 
-FILE *g_stream;
-
 // Buffer containing the gaussian weights
 int g_gaussian = 0;
 
@@ -70,9 +68,6 @@ deathray::deathray(PClip child,
 												sigma_(static_cast<float>(sigma)),
 												sample_expand_(sample_expand),
 												env_(env){
-
-	g_stream = freopen("Deathray.log", "w", stderr) ;
-
 }
 
 result deathray::Init() {

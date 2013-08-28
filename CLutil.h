@@ -49,8 +49,6 @@ result AssembleSources(
 // CompileAll
 // All kernels are compiled, for all available devices.
 // Requires g_context and g_devices.
-// Writes the OpenCL compiler's output to stderr
-// if there are any compilation problems.
 result CompileAll(
 	const int			&device_count, 
 	const cl_device_id	&devices);
