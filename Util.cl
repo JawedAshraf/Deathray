@@ -89,6 +89,28 @@ float4 gamma_encode4(float4 x) {
 	return en_gamma;
 }
 
+float4 ReadPixel4(
+	read_only 	image2d_t 	plane,	
+	const		int2		coordinates) {
+
+	const sampler_t frame = CLK_NORMALIZED_COORDS_FALSE | // TODO rename plane
+							CLK_ADDRESS_CLAMP |
+							CLK_FILTER_NEAREST;
+
+	float4 pixel = read_imagef(plane, frame, coordinates);
+	pixel = gamma_decode4(pixel);
+	return pixel;
+}
+
+void WritePixel4(
+	const		float4 		pixel,
+	const		int2		coordinates,
+	write_only 	image2d_t 	plane) {
+
+	float4 gamma_encoded_pixel = gamma_encode4(pixel);
+	write_imagef(plane, coordinates, gamma_encoded_pixel);
+}
+
 void WriteTile4(
 	float4 store,
 	int x,					// coordinates of a strip ...
