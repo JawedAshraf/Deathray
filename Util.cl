@@ -6,53 +6,21 @@
  */
 
 #define TILE_SIDE 53
+#define USE_SRGB_GAMMA_CURVE 0
 
 __kernel void Zero(__global float4 *A) {
     int pos = get_global_id(0);
 	A[pos] = 0.f;
 }
 
-// fast_power
-// OpenCL on AMD GPUs doesn't expose the fast
-// pow. The OpenCL pow function and its variants
-// are all maximum precision. It's also more than
-// twice as slow as this, which will have 1 or 2 ULP
-// worse precision, I guess (not measured)
-float fast_power(float x, float y) {
-	return exp2(y * log2(x));
-}
-
-float4 fast_power4(float4 x, float y) {
-	float4 power;
-
-	float4 log_2 = log2(x);
-#if 0 // slowest
-	power.x = exp2(y * log2(x.x));
-	power.y = exp2(y * log2(x.y));
-	power.z = exp2(y * log2(x.z));
-	power.w = exp2(y * log2(x.w));
-#else
-#if 0 // faster
-	power = exp2(y * log_2);
-#else // fastest
-	power.x = exp2(y * log_2.x);
-	power.y = exp2(y * log_2.y);
-	power.z = exp2(y * log_2.z);
-	power.w = exp2(y * log_2.w);
-#endif
-#endif
-
-	return power;
-}
-
 // gamma_decode
 // Converts input from gamma space into linear space.
 float gamma_decode(float x) {
-#if 1
+#if USE_SRGB_GAMMA_CURVE
 	if (x <= 0.081f) return x/4.5f;
-	return fast_power(((x + 0.099f)/1.099f), 2.22222222f);
+	return native_powr(((x + 0.099f)/1.099f), 2.22222222f);
 #else
-	return fast_power(x, 2.22222222f);
+	return native_powr(x, 2.22222222f);
 #endif
 }
 
@@ -70,11 +38,11 @@ float4 gamma_decode4(float4 x) {
 // gamma_encode
 // Converts input from linear space into gamma space.
 float gamma_encode(float x) {
-#if 1
+#if USE_SRGB_GAMMA_CURVE
 	if (x <= 0.018f) return 4.5f * x;
-	return 1.099f * fast_power(x, 0.45f) - 0.099f;
+	return 1.099f * native_powr(x, 0.45f) - 0.099f;
 #else
-	return fast_power(x, 0.45f);
+	return native_powr(x, 0.45f);
 #endif
 }
 
