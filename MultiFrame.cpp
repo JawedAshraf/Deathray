@@ -113,7 +113,8 @@ result MultiFrame::InitKernels(
 	finalise_kernel_.SetNumberedArg(1, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(averages_));
 	finalise_kernel_.SetNumberedArg(2, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_));
 	finalise_kernel_.SetNumberedArg(3, sizeof(int), &intermediate_width_);
-	finalise_kernel_.SetNumberedArg(4, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(dest_plane_));
+	finalise_kernel_.SetNumberedArg(4, sizeof(int), &linear);
+	finalise_kernel_.SetNumberedArg(5, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(dest_plane_));
 
 	if (finalise_kernel_.arguments_valid()) {
 		finalise_kernel_.set_work_dim(2);
