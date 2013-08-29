@@ -33,7 +33,8 @@ public:
 		const	int				&src_pitch,
 		const	int				&dst_pitch,
 		const	float			&h,
-		const	int				&sample_expand);
+		const	int				&sample_expand,
+		const	int				&linear);
 
 	// SupplyFrameNumbers
 	// Supplies a set of frame numbers, in object MultiFrameRequest
@@ -69,7 +70,9 @@ private:
 	// InitKernels
 	// Configure global arguments for the filter and finalise kernels,
 	// arguments that won't change over the duration of clip processing.
-	result InitKernels(const int &sample_expand);
+	result InitKernels(
+		const int &sample_expand,
+		const int &linear);
 
 	// InitFrames
 	// Create the Frame objects, one per step of the temporal filter.
@@ -98,7 +101,7 @@ private:
 		// Tell the frame object to initialise its buffer
 		result Init(
 			const	int					&device_id,
-				cl_command_queue	*cq, 
+			cl_command_queue			*cq, 
 			const	CLKernel			&NLM_kernel,
 			const	int					&width, 
 			const	int					&height, 
