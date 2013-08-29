@@ -85,7 +85,7 @@ __kernel void NLMFinalise(
 	const		global 		float4		*intermediate_average,	// final average for 4 pixels
 	const		global 		float4		*intermediate_weight,	// final weight for 4 pixels
 	const					int			intermediate_width,		// width, in float4s, of intermediate buffers
-	const		int			linear,								// process plane in linear space instead of gamma space
+	const					int			linear,					// process plane in linear space instead of gamma space
 	write_only 				image2d_t 	destination_plane) {	// final result
 	
 	// Computes the final pixel value based upon the average and weight
