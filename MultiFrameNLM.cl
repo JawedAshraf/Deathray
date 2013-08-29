@@ -108,11 +108,7 @@ __kernel void NLMFinalise(
 	float4 filtered_pixels = average / weight;
 
 #if 1
-	const sampler_t plane = CLK_NORMALIZED_COORDS_FALSE |
-							CLK_ADDRESS_CLAMP |
-							CLK_FILTER_NEAREST;
-
-	float4 original = read_imagef(target_plane, plane, destination);
+	float4 original = ReadPixel4(target_plane, destination, linear);
 
 	float4 difference = filtered_pixels - original;
 	float4 correction = (difference * original * original) - 

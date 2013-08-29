@@ -58,11 +58,7 @@ __kernel void NLMSingleFrameFourPixel(
 	Filter4(target,	h, sample_expand, target_window, target_tile, g_gaussian, 1, &average, &weight);
 	filtered_pixels = average / weight;
 #if 1
-	const sampler_t plane = CLK_NORMALIZED_COORDS_FALSE |
-							CLK_ADDRESS_CLAMP |
-							CLK_FILTER_NEAREST;
-
-	float4 original = read_imagef(target_plane, plane, source);
+	float4 original = ReadPixel4(target_plane, source, linear);
 
 	float4 difference = filtered_pixels - original;
 	float4 correction = (difference * original * original) - 
