@@ -13,6 +13,7 @@ __kernel void NLMSingleFrameFourPixel(
 	const		float		h,						// strength of denoising
 	const		int			sample_expand,			// factor to expand sample radius
 	constant	float		*g_gaussian,			// 49 weights of guassian kernel
+	const		int			linear,					// process plane in linear space instead of gamma space
 	write_only 	image2d_t 	destination_plane) {	// filtered result
 	// Each work group produces 1024 filtered pixels, organised as a tile
 	// of 32x32.
@@ -44,7 +45,7 @@ __kernel void NLMSingleFrameFourPixel(
 	int2 target = (int2)((local_id.x << 2) + 8, local_id.y + 8);
 
 	// The tile is 48x48 pixels which is entirely filled from the source
-	FetchAndMirror48x48(target_plane, width, height, local_id, source, target_tile) ;
+	FetchAndMirror48x48(target_plane, width, height, local_id, source, linear, target_tile) ;
 
 	int kernel_radius = 3;
 	float16 target_window[7];
@@ -69,5 +70,5 @@ __kernel void NLMSingleFrameFourPixel(
 
 	filtered_pixels = filtered_pixels - correction;
 #endif
-	write_imagef(destination_plane, source, filtered_pixels);
+	WritePixel4(filtered_pixels, source, linear, destination_plane);
 }

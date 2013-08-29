@@ -91,24 +91,27 @@ float4 gamma_encode4(float4 x) {
 
 float4 ReadPixel4(
 	read_only 	image2d_t 	plane,	
-	const		int2		coordinates) {
+	const		int2		coordinates,
+	const		int			linear) {
 
-	const sampler_t frame = CLK_NORMALIZED_COORDS_FALSE | // TODO rename plane
+	const sampler_t frame = CLK_NORMALIZED_COORDS_FALSE |
 							CLK_ADDRESS_CLAMP |
 							CLK_FILTER_NEAREST;
 
 	float4 pixel = read_imagef(plane, frame, coordinates);
-	pixel = gamma_decode4(pixel);
+	if (linear) pixel = gamma_decode4(pixel);
 	return pixel;
 }
 
 void WritePixel4(
 	const		float4 		pixel,
 	const		int2		coordinates,
+	const		int			linear,
 	write_only 	image2d_t 	plane) {
 
-	float4 gamma_encoded_pixel = gamma_encode4(pixel);
-	write_imagef(plane, coordinates, gamma_encoded_pixel);
+	float4 write_pixel = pixel;
+	if (linear) write_pixel = gamma_encode4(pixel);
+	write_imagef(plane, coordinates, write_pixel);
 }
 
 void WriteTile4(
@@ -226,6 +229,7 @@ void FetchAndMirror48x48(
 	const		int			height,			// height in pixels
 	const		int2		local_id,		// Work item
 	const		int2		source,			// coordinates
+	const		int			linear,			// process plane in linear space instead of gamma space
 	local		float		*tile) {		// existing block of local memory populated with 48x48 pixels
 	// Fetch pixels from source and populate a 48x48 tile of pixels.
 	//
@@ -236,11 +240,7 @@ void FetchAndMirror48x48(
 	// four edges of the frame the apron is filled, instead, with 
 	// pixels mirrored from just inside the frame.
 
-	const sampler_t plane = CLK_NORMALIZED_COORDS_FALSE |
-							CLK_ADDRESS_CLAMP |
-							CLK_FILTER_NEAREST;
-
-	float4 source_pixels = read_imagef(target_plane, plane, source);
+	float4 source_pixels = ReadPixel4(target_plane, source, linear);
 
 	write_mem_fence(CLK_LOCAL_MEM_FENCE);		
 
@@ -251,12 +251,12 @@ void FetchAndMirror48x48(
 	
 	if (local_id.y < 8 || local_id.y > 23) { // 8 top and bottom rows of apron are filled from adjacent tiles
 		int offset = (local_id.y < 8) ? -8 : 8;
-		source_pixels = read_imagef(target_plane, plane, source + (int2)(0, offset));
+		source_pixels = ReadPixel4(target_plane, source + (int2)(0, offset), linear);
 		WriteTile4(source_pixels, target.x, target.y + offset, tile); 
 	}	
 	if (local_id.x < 2 || local_id.x > 5) { // 8 columns at left and right
 		int offset = (local_id.x < 2) ? -2 : 2;
-		source_pixels = read_imagef(target_plane, plane, source + (int2)(offset, 0));
+		source_pixels = ReadPixel4(target_plane, source + (int2)(offset, 0), linear);
 		WriteTile4(source_pixels, target.x + (offset << 2), target.y, tile); 
 	}	
 	if (local_id.y < 8 || local_id.y > 23) { // 4 corners, each 8x8
@@ -264,7 +264,7 @@ void FetchAndMirror48x48(
 		offset.y = (local_id.y < 8) ? -8 : 8;
 		if (local_id.x < 2 || local_id.x > 5) {
 			offset.x = (local_id.x < 2) ? -2 : 2;
-			source_pixels = read_imagef(target_plane, plane, source + offset);
+			source_pixels = ReadPixel4(target_plane, source + offset, linear);
 			WriteTile4(source_pixels, target.x + (offset.x << 2), target.y + offset.y, tile);
 		}
 	}

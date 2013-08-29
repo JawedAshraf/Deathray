@@ -16,6 +16,7 @@ __kernel void NLMMultiFrameFourPixel(
 	const		int			sample_expand,			// factor to expand sample radius
 	constant	float		*g_gaussian,			// 49 weights of guassian kernel
 	const		int			intermediate_width,		// width, in float4s, of intermediate buffers
+	const		int			linear,					// process plane in linear space instead of gamma space
 	global 		float4		*intermediate_average,	// intermediate average for 4 pixels
 	global 		float4		*intermediate_weight) {	// intermediate weight for 4 pixels
 
@@ -50,7 +51,7 @@ __kernel void NLMMultiFrameFourPixel(
 	int2 target = (int2)((local_id.x << 2) + 8, local_id.y + 8);
 
 	// The tile is 48x48 pixels which is entirely filled from the source
-	FetchAndMirror48x48(target_plane, width, height, local_id, source, tile) ;
+	FetchAndMirror48x48(target_plane, width, height, local_id, source, linear, tile) ;
 
 	// Populate the 10x7 target window from the tile
 	int kernel_radius = 3;
@@ -64,7 +65,7 @@ __kernel void NLMMultiFrameFourPixel(
 	// Most planes are planes other than the target plane, which need
 	// to be fetched into the tile for sampling
 	if (!sample_equals_target)
-		FetchAndMirror48x48(sample_plane, width, height, local_id, source, tile);
+		FetchAndMirror48x48(sample_plane, width, height, local_id, source, linear, tile);
 
 	int linear_address = source.y * intermediate_width + source.x;
 	float4 average = intermediate_average[linear_address];
@@ -84,6 +85,7 @@ __kernel void NLMFinalise(
 	const		global 		float4		*intermediate_average,	// final average for 4 pixels
 	const		global 		float4		*intermediate_weight,	// final weight for 4 pixels
 	const					int			intermediate_width,		// width, in float4s, of intermediate buffers
+	const		int			linear,								// process plane in linear space instead of gamma space
 	write_only 				image2d_t 	destination_plane) {	// final result
 	
 	// Computes the final pixel value based upon the average and weight
@@ -118,7 +120,7 @@ __kernel void NLMFinalise(
 
 	filtered_pixels = filtered_pixels - correction;
 #endif
-	write_imagef(destination_plane, destination, filtered_pixels);
+	WritePixel4(filtered_pixels, destination, linear, destination_plane);
 }
 
 
