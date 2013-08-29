@@ -116,67 +116,6 @@ float16 ReadTile16(
 	return result;
 }
 
-float16 Unpack10PixelsAndNormalise(uint4 sixteen_pixels) {
-	// Unpack 10 pixels, which are packed into 128 bits as uchars,
-	// into 10 normalised pixels as floats. 
-	//
-	// Only 10 pixels are required from each row of a window.
-
-	uchar4 four_pixels;
-	float16 result;
-
-	four_pixels = as_uchar4(sixteen_pixels.x);
-
-	result.s0 = (float)four_pixels.x * 0.0039215686f;
-	result.s1 = (float)four_pixels.y * 0.0039215686f; 
-	result.s2 = (float)four_pixels.z * 0.0039215686f; 
-	result.s3 = (float)four_pixels.w * 0.0039215686f; 
-
-	four_pixels = as_uchar4(sixteen_pixels.y);
-
-	result.s4 = (float)four_pixels.x * 0.0039215686f; 
-	result.s5 = (float)four_pixels.y * 0.0039215686f; 
-	result.s6 = (float)four_pixels.z * 0.0039215686f; 
-	result.s7 = (float)four_pixels.w * 0.0039215686f; 
-                                
-	four_pixels = as_uchar4(sixteen_pixels.z);
-
-	result.s8 = (float)four_pixels.x * 0.0039215686f; 
-	result.s9 = (float)four_pixels.y * 0.0039215686f; 
-                                
-	return result;
-}
-
-uint4 Pack10PixelsIntoTargetRow(float16 sixteen_pixels) {
-	// Pack 10 float pixels into 10 uchars, stored as a uint4.
-	//
-	// Only 10 pixels are required for target window's row.
-
-	uchar4 four_pixels;
-	uint4 result;
-
-	four_pixels.x = (uchar)(sixteen_pixels.s0 * 255.f);
-	four_pixels.y = (uchar)(sixteen_pixels.s1 * 255.f);
-	four_pixels.z = (uchar)(sixteen_pixels.s2 * 255.f);
-	four_pixels.w = (uchar)(sixteen_pixels.s3 * 255.f);
-
-	result.x = as_uint(four_pixels);
-   
-	four_pixels.x = (uchar)(sixteen_pixels.s4 * 255.f);
-	four_pixels.y = (uchar)(sixteen_pixels.s5 * 255.f);
-	four_pixels.z = (uchar)(sixteen_pixels.s6 * 255.f);
-	four_pixels.w = (uchar)(sixteen_pixels.s7 * 255.f);
- 
-	result.y = as_uint(four_pixels);
-                                      
-	four_pixels.x = (uchar)(sixteen_pixels.s8 * 255.f);
-	four_pixels.y = (uchar)(sixteen_pixels.s9 * 255.f);
- 
-	result.z = as_uint(four_pixels);
-                         
-	return result;
-}
-
 void Coordinates32x32(
 	int2 *local_id,	// Work item
 	int2 *source) {	// Each work item processes 4 pixels from source as a single row uchar4/float4
