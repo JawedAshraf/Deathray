@@ -74,7 +74,7 @@ value for each in brackets:
              Limited to the range 0 to 64.
 
              When set to 0 spatial filtering is performed on the 
-             luma plane. When set to 1 filtering uses the prior,
+             luma plane. When set to 1 filtering uses the prior,
              current and next frames for the non-local sampling
              and weighting process. Higher values will increase
              the range of prior and next frames that are included.
@@ -84,7 +84,7 @@ value for each in brackets:
              Limited to the range 0 to 64.
 
              When set to 0 spatial filtering is performed on the 
-             chroma planes. When set to 1 filtering uses the prior,
+             chroma planes. When set to 1 filtering uses the prior,
              current and next frames for the non-local sampling
              and weighting process. Higher values will increase
              the range of prior and next frames that are included.
@@ -96,7 +96,7 @@ value for each in brackets:
              The kernel implemented by Deathray uses 7x7-pixel 
              windows centred upon the pixel being filtered. 
 
-             For a 2-dimensional gaussian kernel sigma should be 
+             For a 2-dimensional gaussian kernel sigma should be 
              approximately 1/3 of the radius of the kernel, or less,
              to retain its gaussian nature. 
 
@@ -138,10 +138,18 @@ value for each in brackets:
              visible as a grid of vertical and horizontal lines
              corresponding with the 32x32 arrangement of the tiles.
 
+ l (false) - linear processing of luma plane.
+ 
+             true or false.
+
+             This option allows processing in linear space instead
+             of the default gamma space.
+
+			 
 Avisynth MT
 ===========
 
-Deathray is not thread safe. This means that only a single instance of
+Deathray is not thread safe. This means that only a single instance of
 Deathray can be used per Avisynth script. By extension this means that
 it is not compatible with any of the multi-threading modes of the 
 Multi Threaded variant of Avisynth. 
@@ -173,5 +181,5 @@ System Responsiveness
 Currently graphics drivers are unable to confer user-responsiveness
 guarantees on OpenCL applications that utilise GPUs. This means if you
 are using Deathray on a frame size of 16 million pixels, there will be some
-juddering in Windows every ~0.7 seconds (1.5 frames per second on HD 5870) 
+juddering in Windows every ~0.7 seconds (1.5 frames per second on HD 5870) 
 accompanied by difficulty in typing, etc.
