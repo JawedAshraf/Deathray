@@ -107,7 +107,7 @@ __kernel void NLMFinalise(
 
 	float4 filtered_pixels = average / weight;
 
-#if 1
+#if 0
 	float4 original = ReadPixel4(target_plane, destination, linear);
 
 	float4 difference = filtered_pixels - original;

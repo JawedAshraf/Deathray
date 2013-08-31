@@ -57,7 +57,7 @@ __kernel void NLMSingleFrameFourPixel(
 
 	Filter4(target,	h, sample_expand, target_window, target_tile, g_gaussian, 1, &average, &weight);
 	filtered_pixels = average / weight;
-#if 1
+#if 0
 	float4 original = ReadPixel4(target_plane, source, linear);
 
 	float4 difference = filtered_pixels - original;
