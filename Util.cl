@@ -6,7 +6,7 @@
  */
 
 #define TILE_SIDE 53
-#define USE_SRGB_GAMMA_CURVE 0
+#define USE_SRGB_GAMMA_CURVE 1
 
 __kernel void Zero(__global float4 *A) {
     int pos = get_global_id(0);
