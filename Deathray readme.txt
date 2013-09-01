@@ -61,13 +61,11 @@ value for each in brackets:
 
              If set to 0 Deathray will not process the luma plane.
 
-
  hUV (1.0) - strength of de-noising in the chroma planes.
 
              Cannot be negative.
 
              If set to 0 Deathray will not process the chroma planes.
-
 
  tY  (0)   - temporal radius for the luma plane.
 
@@ -145,6 +143,14 @@ value for each in brackets:
              This option allows processing in linear space instead
              of the default gamma space.
 
+ c (true)  - correction after filtering.
+ 
+             true or false.
+
+             This option applies a correction after filtering
+             to limit the amount of filtering per pixel.
+			 
+             When set to false the naked NLM algorithm is used.
 			 
 Avisynth MT
 ===========
