@@ -7,7 +7,6 @@
 
 
 #include <windows.h>
-#include <math.h>
 #include "clutil.h"
 #include "device.h"
 #include "deathray.h"

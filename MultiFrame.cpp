@@ -5,8 +5,6 @@
  * Copyright 2013, Jawed Ashraf - Deathray@cupidity.f9.co.uk
  */
 
-#include <math.h>
-
 #include "device.h"
 #include "buffer.h"
 #include "buffer_map.h"
