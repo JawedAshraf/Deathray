@@ -38,7 +38,8 @@ result MultiFrame::Init(
 	const	int				&dst_pitch,
 	const	float			&h,
 	const	int				&sample_expand,
-	const	int				&linear) {
+	const	int				&linear,
+	const	int				&correction) {
 
 	if (device_id >= g_device_count) return FILTER_ERROR;
 
@@ -57,7 +58,7 @@ result MultiFrame::Init(
 
 	status = InitBuffers();
 	if (status != FILTER_OK) return status;
-	status = InitKernels(sample_expand, linear);
+	status = InitKernels(sample_expand, linear, correction);
 	if (status != FILTER_OK) return status;
 	status = InitFrames();
 
@@ -84,7 +85,8 @@ result MultiFrame::InitBuffers() {
 
 result MultiFrame::InitKernels(
 	const int &sample_expand,
-	const int &linear) {
+	const int &linear,
+	const int &correction) {
 	NLM_kernel_ = CLKernel(device_id_, "NLMMultiFrameFourPixel");
 	NLM_kernel_.SetNumberedArg(3, sizeof(int), &width_);
 	NLM_kernel_.SetNumberedArg(4, sizeof(int), &height_);
@@ -114,7 +116,8 @@ result MultiFrame::InitKernels(
 	finalise_kernel_.SetNumberedArg(2, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_));
 	finalise_kernel_.SetNumberedArg(3, sizeof(int), &intermediate_width_);
 	finalise_kernel_.SetNumberedArg(4, sizeof(int), &linear);
-	finalise_kernel_.SetNumberedArg(5, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(dest_plane_));
+	finalise_kernel_.SetNumberedArg(5, sizeof(int), &correction);
+	finalise_kernel_.SetNumberedArg(6, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(dest_plane_));
 
 	if (finalise_kernel_.arguments_valid()) {
 		finalise_kernel_.set_work_dim(2);

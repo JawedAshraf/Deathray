@@ -33,7 +33,8 @@ public:
 		const	int		&dst_pitch,
 		const	float	&h,
 		const	int		&sample_expand,
-		const	int		&linear);
+		const	int		&linear,
+		const	int		&correction);
 
 	// CopyTo
 	// Copy the plane from host to device.

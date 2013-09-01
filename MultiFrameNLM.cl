@@ -86,6 +86,7 @@ __kernel void NLMFinalise(
 	const		global 		float4		*intermediate_weight,	// final weight for 4 pixels
 	const					int			intermediate_width,		// width, in float4s, of intermediate buffers
 	const					int			linear,					// process plane in linear space instead of gamma space
+	const					int			correction,				// apply a post-filtering correction
 	write_only 				image2d_t 	destination_plane) {	// final result
 	
 	// Computes the final pixel value based upon the average and weight
@@ -107,15 +108,15 @@ __kernel void NLMFinalise(
 
 	float4 filtered_pixels = average / weight;
 
-#if 0
-	float4 original = ReadPixel4(target_plane, destination, linear);
+	if (correction) {
+		float4 original = ReadPixel4(target_plane, destination, linear);
 
-	float4 difference = filtered_pixels - original;
-	float4 correction = (difference * original * original) - 
-					    ((difference * original) * (difference * original));
+		float4 difference = filtered_pixels - original;
+		float4 correction = (difference * original * original) - 
+							((difference * original) * (difference * original));
 
-	filtered_pixels = filtered_pixels - correction;
-#endif
+		filtered_pixels = filtered_pixels - correction;
+	}
 	WritePixel4(filtered_pixels, destination, linear, destination_plane);
 }
 

@@ -34,7 +34,8 @@ public:
 		const	int				&dst_pitch,
 		const	float			&h,
 		const	int				&sample_expand,
-		const	int				&linear);
+		const	int				&linear,
+		const	int				&correction);
 
 	// SupplyFrameNumbers
 	// Supplies a set of frame numbers, in object MultiFrameRequest
@@ -72,7 +73,8 @@ private:
 	// arguments that won't change over the duration of clip processing.
 	result InitKernels(
 		const int &sample_expand,
-		const int &linear);
+		const int &linear,
+		const int &correction);
 
 	// InitFrames
 	// Create the Frame objects, one per step of the temporal filter.

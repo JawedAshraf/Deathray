@@ -14,7 +14,7 @@
 
 class deathray : public GenericVideoFilter {
 public:
-	deathray(PClip _child, double h_Y, double h_UV, int t_Y, int t_UV, double sigma, int sample_expand, int linear, IScriptEnvironment* env);
+	deathray(PClip _child, double h_Y, double h_UV, int t_Y, int t_UV, double sigma, int sample_expand, int linear, int correction, IScriptEnvironment* env);
 
 	~deathray(){};
 
@@ -80,6 +80,7 @@ private:
 	float sigma_			;	// gaussian weights are computed based upon sigma
 	int sample_expand_		;	// factor by which the sample radius is expanded, e.g. 2 means sample radius of 6, since kernel has radius 3
 	int linear_				;	// process plane in linear space instead of gamma space when set to 1
+	int correction_			;	// apply a post-filtering correction
 
 	// Following are standard Avisynth properties of environment, source and destination: frames and planes
 	IScriptEnvironment *env_;
