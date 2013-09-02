@@ -205,6 +205,19 @@ result MultiFrame::CopyTo(MultiFrameRequest *retrieved) {
 	return status;
 }
 
+result MultiFrame::ExecuteFrame(
+	const int &frame_id,
+	const bool &sample_equals_target,
+	cl_event &copying_target, 
+	cl_event *filter_events) {
+
+	cl_event executed;
+
+	result status = frames_[frame_id].Execute(sample_equals_target, &copying_target, &executed);
+	filter_events[frame_id] = executed;
+	return status;
+}
+
 result MultiFrame::Execute() {
 	result status = FILTER_OK;
 
@@ -212,7 +225,7 @@ result MultiFrame::Execute() {
 	int target_frame_id = (target_frame_number_ + temporal_radius_) % frames_.size();
 
 	int target_frame_plane; 		
-	cl_event copying_target, executed;
+	cl_event copying_target;
 	frames_[target_frame_id].Plane(&target_frame_plane, &copying_target);
 
 	NLM_kernel_.SetNumberedArg(0, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(target_frame_plane));
@@ -220,9 +233,12 @@ result MultiFrame::Execute() {
 	cl_event *filter_events = new cl_event[frames_.size()];
 	for (int i = 0; i < 2 * temporal_radius_ + 1; ++i) {
 		bool sample_equals_target = i == target_frame_id;
-		status = frames_[i].Execute(sample_equals_target, &copying_target, &executed);
-		filter_events[i] = executed;
-		if (status != FILTER_OK) return status;
+/*		if (sample_equals_target) { // process the target frame last
+
+		} else {*/
+			status = ExecuteFrame(i, sample_equals_target, copying_target, filter_events);
+			if (status != FILTER_OK) return status;
+		//}
 	}
 
 	finalise_kernel_.SetNumberedArg(0, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(target_frame_plane));

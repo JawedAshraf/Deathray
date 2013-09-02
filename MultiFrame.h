@@ -84,6 +84,15 @@ private:
 	// Before every new frame is processed the intermediate buffers must be zeroed.
 	result ZeroIntermediates();
 
+	// ExecuteFrame
+	// Process a single frame in the circular buffer of frames.
+	result ExecuteFrame(
+		const		int		&frame_id,
+		const		bool	&sample_equals_target,
+		cl_event			&copying_target, 
+		cl_event			*filter_events);
+
+
 	// Frame
 	// An object for each of the 2 * temporal_radius + 1 frames, all of which are processed separately.
 	//
