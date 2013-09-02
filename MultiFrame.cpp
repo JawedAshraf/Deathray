@@ -233,13 +233,13 @@ result MultiFrame::Execute() {
 	cl_event *filter_events = new cl_event[frames_.size()];
 	for (int i = 0; i < 2 * temporal_radius_ + 1; ++i) {
 		bool sample_equals_target = i == target_frame_id;
-/*		if (sample_equals_target) { // process the target frame last
-
-		} else {*/
+		if (!sample_equals_target) { // exclude the target frame so that it is processed last
 			status = ExecuteFrame(i, sample_equals_target, copying_target, filter_events);
 			if (status != FILTER_OK) return status;
-		//}
+		}
 	}
+	status = ExecuteFrame(target_frame_id, true, copying_target, filter_events);
+	if (status != FILTER_OK) return status;
 
 	finalise_kernel_.SetNumberedArg(0, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(target_frame_plane));
 	status = finalise_kernel_.ExecuteWaitList(cq_, frames_.size(), filter_events, &executed_);
