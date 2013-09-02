@@ -75,6 +75,8 @@ result MultiFrame::InitBuffers() {
 	if (status != FILTER_OK) return status;
 	status = g_devices[device_id_].buffers_.AllocBuffer(cq_, bytes, &weights_);
 	if (status != FILTER_OK) return status;
+	status = g_devices[device_id_].buffers_.AllocBuffer(cq_, bytes, &weights_max_);
+	if (status != FILTER_OK) return status;
 
 	status = g_devices[device_id_].buffers_.AllocPlane(cq_, width_, height_, &dest_plane_);
 
@@ -95,6 +97,7 @@ result MultiFrame::InitKernels(
 	NLM_kernel_.SetNumberedArg(9, sizeof(int), &linear);
 	NLM_kernel_.SetNumberedArg(10, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(averages_));
 	NLM_kernel_.SetNumberedArg(11, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_));
+	NLM_kernel_.SetNumberedArg(12, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_max_));
 
 	const size_t set_local_work_size[2]		= {8, 32};
 	const size_t set_scalar_global_size[2]	= {width_, height_};
@@ -173,6 +176,15 @@ result MultiFrame::ZeroIntermediates() {
 	} else {
 		return FILTER_KERNEL_ARGUMENT_ERROR;
 	}
+
+	Intermediates.SetNumberedArg(0, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_max_));
+	if (Intermediates.arguments_valid()) {
+		status = Intermediates.Execute(cq_, NULL);
+		if (status != FILTER_OK) return status;
+	} else {
+		return FILTER_KERNEL_ARGUMENT_ERROR;
+	}
+
 	clFinish(cq_);
 	return status;						
 }

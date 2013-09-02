@@ -46,8 +46,15 @@ public:
 				MultiFrameRequest	*required);
 
 	// CopyTo
-	// MultiFrameRequest contains the frame numbers and host
-	// pointers of planes that have to be copied to device.
+	// Before processing each of the planes, all frames are
+	// copied to the device. Usually most frames will already
+	// be on the device. MultiFrameRequest defines the frame 
+	// numbers and host pointers of planes that have yet to
+	// be copied to the device.
+	//
+	// Also zeroes the intermediate buffers.
+	//
+	// Called once per filtered frame
 	result CopyTo(MultiFrameRequest *retrieved) ;
 	
 	// Execute
@@ -65,7 +72,8 @@ public:
 private:
 
 	// InitBuffers
-	// Create and zero the intermediate averages plus weights buffers and create the destination buffer.
+	// Create the intermediate averages, weights and maximum
+	// weights buffers and create the destination buffer.
 	result InitBuffers();
 
 	// InitKernels
@@ -170,7 +178,8 @@ private:
 	int target_frame_number_	;	// frame to be filtered
 	int dest_plane_				;	// dedicated buffer for destination plane
 	int averages_				;	// intermediate averages buffer
-	int	weights_				;	// intermediate weights buffer
+	int weights_				;	// intermediate weights buffer
+	int weights_max_			;	// intermediate maximum weights buffer
 	int width_					;	// width of plane's content
 	int height_					;	// height of plane's content
 	int src_pitch_				;	// host plane format allows each row to be potentially longer than width_

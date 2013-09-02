@@ -18,7 +18,8 @@ __kernel void NLMMultiFrameFourPixel(
 	const		int			intermediate_width,		// width, in float4s, of intermediate buffers
 	const		int			linear,					// process plane in linear space instead of gamma space
 	global 		float4		*intermediate_average,	// intermediate average for 4 pixels
-	global 		float4		*intermediate_weight) {	// intermediate weight for 4 pixels
+	global 		float4		*intermediate_weight,	// intermediate weight for 4 pixels
+	global		float4		*intermediate_max) {	// intermediate maximum weights for 4 pixels
 
 	// Each work group produces 1024 filtered pixels, organised as a tile
 	// of 32x32, for a single iteration of multi-pass filtering. Each 
@@ -70,12 +71,14 @@ __kernel void NLMMultiFrameFourPixel(
 	int linear_address = source.y * intermediate_width + source.x;
 	float4 average = intermediate_average[linear_address];
 	float4 weight = intermediate_weight[linear_address];
+	float4 weight_max = intermediate_max[linear_address];
 
-	Filter4(target, h, sample_expand, target_window, tile, g_gaussian, sample_equals_target, &average, &weight);
+	Filter4(target, h, sample_expand, target_window, tile, g_gaussian, sample_equals_target, &average, &weight, &weight_max);
 
 	if (target.y < height) {
 		intermediate_average[linear_address] = average;
 		intermediate_weight[linear_address] = weight;
+		intermediate_max[linear_address] = weight_max;
 	}
 }
 

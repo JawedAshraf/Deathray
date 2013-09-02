@@ -14,7 +14,8 @@ void Filter4(
 	constant	float	*gaussian,				// 49 weights of guassian kernel
 	const		int		reweight_target_pixel,	// when target plane is the sampling plane, the target pixel is reweighted
 				float4	*all_samples_average,	// running sum of weighted pixel values
-				float4	*all_samples_weight) {	// running sum of weights
+				float4	*all_samples_weight,	// running sum of weights
+				float4  *weight_max) {			// maximum weight encountered across all sample planes
 
 	// Computes the gaussian-weighted average of the target pixels' windows
 	// against all sample windows from the tile.
@@ -32,7 +33,6 @@ void Filter4(
 	int2 sample_end	  = (int2)(min(target.x + sample_radius, 41), min(target.y + sample_radius, 44));
 
 	float4 sample_centre_pixel;
-	float4 weight_max = 0.f;
 	int2 sample;
 	for (sample.y = sample_start.y; sample.y <= sample_end.y; ++sample.y) {
 		for (sample.x = sample_start.x; sample.x <= sample_end.x; ++sample.x) {
@@ -67,7 +67,7 @@ void Filter4(
 
 			float4 sample_weight = exp(-euclidean_distance / h);	
 
-			weight_max = max(weight_max, sample_weight);
+			*weight_max = max(*weight_max, sample_weight);
 			
 			sample_weight = (sample.x == target.x && sample.y == target.y && reweight_target_pixel) 
 						  ? 0.f 
@@ -80,8 +80,8 @@ void Filter4(
 		}
 	}
 
-	*all_samples_weight += reweight_target_pixel ? weight_max : 0.f;
+	*all_samples_weight += reweight_target_pixel ? *weight_max : 0.f;
 
 	sample_centre_pixel = ReadTile4(target.x, target.y, sample_tile);
-	*all_samples_average +=  reweight_target_pixel ? weight_max * sample_centre_pixel : 0.f;
+	*all_samples_average +=  reweight_target_pixel ? *weight_max * sample_centre_pixel : 0.f;
 }
