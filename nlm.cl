@@ -67,7 +67,7 @@ void Filter4(
 
 			float4 sample_weight = exp(-euclidean_distance / h);	
 
-			*weight_max = max(*weight_max, sample_weight);
+			*weight_max = min(*weight_max, sample_weight);
 			
 			sample_weight = (sample.x == target.x && sample.y == target.y && reweight_target_pixel) 
 						  ? 0.f 
