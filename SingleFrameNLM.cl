@@ -40,7 +40,7 @@ __kernel void NLMSingleFrameFourPixel(
 
 	float4 average = 0.f;
 	float4 weight = 0.f;
-	float4 weight_max = 0.f;
+	float4 weight_max = MAXFLOAT;
 	float4 filtered_pixels;
 
 	// Inside local memory the top-left corner of the tile is at (8,8)
