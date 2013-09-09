@@ -29,7 +29,7 @@ private:
 	// SetupFilters
 	// Configure the global classes for single frame and multi
 	// frame filtering.
-	result SetupFilters();
+	result SetupFilters(const int &device_id);
 
 	// InitPointers
 	// Get the pointers for single frame filtering
@@ -50,7 +50,7 @@ private:
 	// SingleFrameInit
 	// Configure the plane-specific objects
 	// for single frame filtering
-	result SingleFrameInit();
+	result SingleFrameInit(const int &device_id);
 
 	// SingleFrameExecute
 	// Filter a single plane for any combination
@@ -60,7 +60,7 @@ private:
 	// MultiFrameInit
 	// Configure the plane-type specific objects
 	// for multi frame filtering
-	result MultiFrameInit();
+	result MultiFrameInit(const int &device_id);
 
 	// MultiFrameCopy
 	// Queries each plane type for the frame numbers

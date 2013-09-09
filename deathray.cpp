@@ -15,6 +15,8 @@
 #include "MultiFrame.h"
 #include "MultiFrameRequest.h"
 
+#define DEVICE 0 // Filter architecture supports use of a single device
+
 device	*g_devices		= NULL;
 int		g_device_count	= 0;
 
@@ -32,7 +34,7 @@ MultiFrame g_MultiFrame_Y;
 MultiFrame g_MultiFrame_U;
 MultiFrame g_MultiFrame_V;
 
-void GaussianGenerator(float sigma) {
+void GaussianGenerator(const float &sigma, const int &device_id) {
 	float two_sigma_squared = 2 * sigma * sigma;
 
 	float gaussian[49]; 
@@ -49,8 +51,8 @@ void GaussianGenerator(float sigma) {
 	for (int i = 0; i < 49; ++i)
 		gaussian[i] /= gaussian_sum;
 
-	g_devices[0].buffers_.AllocBuffer(g_devices[0].cq(), 49 * sizeof(float), &g_gaussian);
-	g_devices[0].buffers_.CopyToBuffer(g_gaussian, gaussian, 49 * sizeof(float));
+	g_devices[device_id].buffers_.AllocBuffer(g_devices[device_id].cq(), 49 * sizeof(float), &g_gaussian);
+	g_devices[device_id].buffers_.CopyToBuffer(g_gaussian, gaussian, 49 * sizeof(float));
 }
 
 deathray::deathray(PClip child, 
@@ -80,8 +82,8 @@ result deathray::Init() {
 	result status = StartOpenCL(&device_count);
 	if (device_count != 0) {
 		g_opencl_available = true;
-		GaussianGenerator(sigma_);
-		status = SetupFilters();
+		GaussianGenerator(sigma_, DEVICE);
+		status = SetupFilters(DEVICE);
 	} else {
 		g_opencl_failed_to_initialise = true;
 	}
@@ -89,15 +91,15 @@ result deathray::Init() {
 	return status;
 }
 
-result deathray::SetupFilters() {
+result deathray::SetupFilters(const int &device_id) {
 	result status = FILTER_OK;
 
 	if ((temporal_radius_Y_ == 0 && h_Y_ > 0.f) || (temporal_radius_UV_ == 0 && h_UV_ > 0.f)) {
-		status = SingleFrameInit();
+		status = SingleFrameInit(device_id);
 		if (status != FILTER_OK) env_->ThrowError("Single-frame initialisation failed, status=%d and OpenCL status=%d", status, g_last_cl_error);	
 	}
 	if ((temporal_radius_Y_ > 0 && h_Y_ > 0.f) || (temporal_radius_UV_ > 0 && h_UV_ > 0.f)) {
-		status = MultiFrameInit();
+		status = MultiFrameInit(device_id);
 		if (status != FILTER_OK) env_->ThrowError("Multi-frame initialisation failed, status=%d and OpenCL status=%d", status, g_last_cl_error);	
 	}	
 
@@ -167,19 +169,19 @@ void deathray::PassThroughChroma() {
 	env_->BitBlt(dstpU_, dst_pitchUV_, srcpU_, src_pitchUV_, row_sizeUV_, heightUV_);
 }
 
-result deathray::SingleFrameInit() {
+result deathray::SingleFrameInit(const int &device_id) {
 	result status = FILTER_OK;
 			
 	if (temporal_radius_Y_ == 0 && h_Y_ > 0.f) {
-		status = g_SingleFrame_Y.Init(0, row_sizeY_, heightY_, src_pitchY_, dst_pitchY_, h_Y_, sample_expand_);
+		status = g_SingleFrame_Y.Init(device_id, row_sizeY_, heightY_, src_pitchY_, dst_pitchY_, h_Y_, sample_expand_);
 		if (status != FILTER_OK) return status;
 	}
 
 	if (temporal_radius_UV_ == 0 && h_UV_ > 0.f) {
-		status = g_SingleFrame_U.Init(0, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_);
+		status = g_SingleFrame_U.Init(device_id, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_);
 		if (status != FILTER_OK) return status;
 
-		status = g_SingleFrame_V.Init(0, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_);
+		status = g_SingleFrame_V.Init(device_id, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_);
 		if (status != FILTER_OK) return status;
 	}
 
@@ -224,19 +226,19 @@ void deathray::SingleFrameExecute() {
 	clWaitForEvents(wait_list_length, wait_list);
 }
 
-result deathray::MultiFrameInit() {
+result deathray::MultiFrameInit(const int &device_id) {
 	result status = FILTER_OK;
 
 	if (temporal_radius_Y_ > 0 && h_Y_ > 0.f) {
-		status = g_MultiFrame_Y.Init(0, temporal_radius_Y_, row_sizeY_, heightY_, src_pitchY_, dst_pitchY_, h_Y_, sample_expand_);
+		status = g_MultiFrame_Y.Init(device_id, temporal_radius_Y_, row_sizeY_, heightY_, src_pitchY_, dst_pitchY_, h_Y_, sample_expand_);
 		if (status != FILTER_OK) return status;
 	}
 
 	if (temporal_radius_UV_ > 0 && h_UV_ > 0.f) {
-		status = g_MultiFrame_U.Init(0, temporal_radius_UV_, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_);
+		status = g_MultiFrame_U.Init(device_id, temporal_radius_UV_, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_);
 		if (status != FILTER_OK) return status;
 
-		status = g_MultiFrame_V.Init(0, temporal_radius_UV_, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_);
+		status = g_MultiFrame_V.Init(device_id, temporal_radius_UV_, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_);
 		if (status != FILTER_OK) return status;
 	}
 
