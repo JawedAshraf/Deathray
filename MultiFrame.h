@@ -98,7 +98,7 @@ private:
 		// Tell the frame object to initialise its buffer
 		result Init(
 			const	int					&device_id,
-				cl_command_queue	*cq, 
+			cl_command_queue			*cq, 
 			const	CLKernel			&NLM_kernel,
 			const	int					&width, 
 			const	int					&height, 
