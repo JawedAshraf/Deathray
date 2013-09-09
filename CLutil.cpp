@@ -124,7 +124,7 @@ result GetDeviceCount(int* device_count) {
 	}
 
 	cl_int	status = CL_SUCCESS;
-#if 0
+
 	status = clGetContextInfo(g_context, 
 							  CL_CONTEXT_NUM_DEVICES, 
 							  sizeof(cl_uint),
@@ -135,8 +135,7 @@ result GetDeviceCount(int* device_count) {
 		g_last_cl_error = status;
 		return FILTER_CONTEXT_NUMBER_DEVICES_FAILED;
 	}
-#endif
-	*device_count = 1;
+
 	return FILTER_OK;		
 }
 
