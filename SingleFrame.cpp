@@ -33,7 +33,8 @@ result SingleFrame::Init(
 	const	float	&h,
 	const	int		&sample_expand,
 	const	int		&linear,
-	const	int		&correction) {
+	const	int		&correction,
+	const	int		&balanced) {
 
 	if (device_id >= g_device_count) return FILTER_ERROR;
 
@@ -62,6 +63,7 @@ result SingleFrame::Init(
 	kernel_.SetArg(sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(g_gaussian));
 	kernel_.SetArg(sizeof(int), &linear);
 	kernel_.SetArg(sizeof(int), &correction);
+	kernel_.SetArg(sizeof(int), &balanced);
 	kernel_.SetArg(sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(dest_plane_));
 
 	if (kernel_.arguments_valid()) {

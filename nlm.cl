@@ -13,6 +13,7 @@ void Filter4(
 	local		float	*sample_tile,			// factor to expand sample radius
 	constant	float	*gaussian,				// 49 weights of guassian kernel
 	const		int		reweight_target_pixel,	// when target plane is the sampling plane, the target pixel is reweighted
+	const		int		balanced,				// balanced tonal range de-noising
 				float4	*all_samples_average,	// running sum of weighted pixel values
 				float4	*all_samples_weight,	// running sum of weights
 				float4  *weight_max) {			// maximum weight encountered across all sample planes
@@ -33,8 +34,8 @@ void Filter4(
 	int2 sample_end	  = (int2)(min(target.x + sample_radius, 41), min(target.y + sample_radius, 44));
 
 	float4 sample_centre_pixel;
-	const float4 invert = 1.f;	// bias difference with an inversion...
-	const float4 factor = 0.5f;	// ... and range limiter, towards highlights and away from shadows 
+	const float4 invert = 1.f;					// bias difference with an inversion...
+	const float4 factor = balanced ? 0.5f: 0.f;	// ... and range limiter, towards highlights and away from shadows 
 	int2 sample;
 	for (sample.y = sample_start.y; sample.y <= sample_end.y; ++sample.y) {
 		for (sample.x = sample_start.x; sample.x <= sample_end.x; ++sample.x) {

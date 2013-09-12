@@ -35,7 +35,8 @@ public:
 		const	float			&h,
 		const	int				&sample_expand,
 		const	int				&linear,
-		const	int				&correction);
+		const	int				&correction,
+		const	int				&balanced);
 
 	// SupplyFrameNumbers
 	// Supplies a set of frame numbers, in object MultiFrameRequest
@@ -82,7 +83,8 @@ private:
 	result InitKernels(
 		const int &sample_expand,
 		const int &linear,
-		const int &correction);
+		const int &correction,
+		const int &balanced);
 
 	// InitFrames
 	// Create the Frame objects, one per step of the temporal filter.
