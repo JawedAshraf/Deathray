@@ -8,14 +8,9 @@
 #define TILE_SIDE 53
 #define USE_SRGB_GAMMA_CURVE 1
 
-__kernel void Zero(__global float4 *A) {
+__kernel void Initialise(__global float4 *A, const float x) {
     int pos = get_global_id(0);
-	A[pos] = 0.f;
-}
-
-__kernel void MaxFloat(__global float4 *A) {
-    int pos = get_global_id(0);
-	A[pos] = MAXFLOAT;
+	A[pos] = x;
 }
 
 // gamma_decode

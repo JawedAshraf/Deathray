@@ -231,7 +231,7 @@ result CompileAll(const int &device_count, const cl_device_id &devices) {
 	}
 
 	const int kernel_count = 4;
-	const string kernels[kernel_count] = {"Zero",
+	const string kernels[kernel_count] = {"Initialise",
 										  "NLMSingleFrameFourPixel",
 										  "NLMMultiFrameFourPixel",
 										  "NLMFinalise"
