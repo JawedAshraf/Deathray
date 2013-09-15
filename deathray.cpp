@@ -61,6 +61,7 @@ deathray::deathray(PClip child,
 				   int sample_expand, 
 				   int linear,
 				   int correction,
+				   int target_min,
 				   IScriptEnvironment *env) :	GenericVideoFilter(child),
 												h_Y_(static_cast<float>(h_Y/10000.)), 
 												h_UV_(static_cast<float>(h_UV/10000.)), 
@@ -70,6 +71,7 @@ deathray::deathray(PClip child,
 												sample_expand_(sample_expand),
 												linear_(linear),
 												correction_(correction),
+												target_min_(target_min),
 												env_(env){
 }
 
@@ -174,15 +176,15 @@ result deathray::SingleFrameInit() {
 	result status = FILTER_OK;
 			
 	if (temporal_radius_Y_ == 0 && h_Y_ > 0.f) {
-		status = g_SingleFrame_Y.Init(0, row_sizeY_, heightY_, src_pitchY_, dst_pitchY_, h_Y_, sample_expand_, linear_, correction_);
+		status = g_SingleFrame_Y.Init(0, row_sizeY_, heightY_, src_pitchY_, dst_pitchY_, h_Y_, sample_expand_, linear_, correction_, target_min_);
 		if (status != FILTER_OK) return status;
 	}
 
 	if (temporal_radius_UV_ == 0 && h_UV_ > 0.f) {
-		status = g_SingleFrame_U.Init(0, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_, 0, correction_);
+		status = g_SingleFrame_U.Init(0, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_, 0, correction_, target_min_);
 		if (status != FILTER_OK) return status;
 
-		status = g_SingleFrame_V.Init(0, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_, 0, correction_);
+		status = g_SingleFrame_V.Init(0, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_, 0, correction_, target_min_);
 		if (status != FILTER_OK) return status;
 	}
 
@@ -231,15 +233,15 @@ result deathray::MultiFrameInit() {
 	result status = FILTER_OK;
 
 	if (temporal_radius_Y_ > 0 && h_Y_ > 0.f) {
-		status = g_MultiFrame_Y.Init(0, temporal_radius_Y_, row_sizeY_, heightY_, src_pitchY_, dst_pitchY_, h_Y_, sample_expand_, linear_, correction_);
+		status = g_MultiFrame_Y.Init(0, temporal_radius_Y_, row_sizeY_, heightY_, src_pitchY_, dst_pitchY_, h_Y_, sample_expand_, linear_, correction_, target_min_);
 		if (status != FILTER_OK) return status;
 	}
 
 	if (temporal_radius_UV_ > 0 && h_UV_ > 0.f) {
-		status = g_MultiFrame_U.Init(0, temporal_radius_UV_, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_, 0, correction_);
+		status = g_MultiFrame_U.Init(0, temporal_radius_UV_, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_, 0, correction_, target_min_);
 		if (status != FILTER_OK) return status;
 
-		status = g_MultiFrame_V.Init(0, temporal_radius_UV_, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_, 0, correction_);
+		status = g_MultiFrame_V.Init(0, temporal_radius_UV_, row_sizeUV_, heightUV_, src_pitchUV_, dst_pitchUV_, h_UV_, sample_expand_, 0, correction_, target_min_);
 		if (status != FILTER_OK) return status;
 	}
 
@@ -337,6 +339,8 @@ AVSValue __cdecl CreateDeathray(AVSValue args, void *user_data, IScriptEnvironme
 
 	int correction = args[8].AsBool(true) ? 1 : 0;
 
+	int target_min = args[9].AsBool(false) ? 1 : 0;
+
 	return new deathray(args[0].AsClip(),
 						h_Y, 
 						h_UV, 
@@ -346,11 +350,12 @@ AVSValue __cdecl CreateDeathray(AVSValue args, void *user_data, IScriptEnvironme
 						sample_expand, 
 						linear,
 						correction,
+						target_min,
 						env);
 }
 
 extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit2(IScriptEnvironment *env) {
-    env->AddFunction("deathray", "c[hY]f[hUV]f[tY]i[tUV]i[s]f[x]i[l]b[c]b", CreateDeathray, 0);
+    env->AddFunction("deathray", "c[hY]f[hUV]f[tY]i[tUV]i[s]f[x]i[l]b[c]b[z]b", CreateDeathray, 0);
 
     return "Deathray";
 }

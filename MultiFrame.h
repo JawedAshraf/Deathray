@@ -35,7 +35,8 @@ public:
 		const	float			&h,
 		const	int				&sample_expand,
 		const	int				&linear,
-		const	int				&correction);
+		const	int				&correction,
+		const	int				&target_min);
 
 	// SupplyFrameNumbers
 	// Supplies a set of frame numbers, in object MultiFrameRequest
@@ -179,13 +180,14 @@ private:
 	int dest_plane_				;	// dedicated buffer for destination plane
 	int averages_				;	// intermediate averages buffer
 	int weights_				;	// intermediate weights buffer
-	int weights_max_			;	// intermediate maximum weights buffer
+	int target_weights_			;	// intermediate target weights buffer
 	int width_					;	// width of plane's content
 	int height_					;	// height of plane's content
 	int src_pitch_				;	// host plane format allows each row to be potentially longer than width_
 	int dst_pitch_				;	// host plane format allows each row to be potentially longer than width_
 	float h_					;	// strength of noise reduction
 	cl_command_queue cq_		;	// device object for queue management and synchronisation
+	int target_min_				;	// target pixel is weighted using minimum weight of samples, not maximum
 	size_t intermediate_width_	;	// width of intermediate buffers, rounded-up to 32 pixels, expressed as 4-pixel strips
 	size_t intermediate_height_	;	// height of intermediate buffers, rounded-up to 32 rows
 	CLKernel NLM_kernel_		;	// kernel that performs NLM computations, once per sample plane
