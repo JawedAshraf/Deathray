@@ -13,6 +13,11 @@ __kernel void Zero(__global float4 *A) {
 	A[pos] = 0.f;
 }
 
+__kernel void MaxFloat(__global float4 *A) {
+    int pos = get_global_id(0);
+	A[pos] = MAXFLOAT;
+}
+
 // gamma_decode
 // Converts input from gamma space into linear space.
 float gamma_decode(float x) {

@@ -13,6 +13,7 @@ void Filter4(
 	local		float	*sample_tile,			// factor to expand sample radius
 	constant	float	*gaussian,				// 49 weights of guassian kernel
 	const		int		reweight_target_pixel,	// when target plane is the sampling plane, the target pixel is reweighted
+	const		int		target_min,				// target pixel is weighted using minimum weight of samples, not maximum
 				float4	*all_samples_average,	// running sum of weighted pixel values
 				float4	*all_samples_weight,	// running sum of weights
 				float4  *target_weight) {		// weight chosen from across all sample planes that will be used for target pixel
@@ -67,7 +68,9 @@ void Filter4(
 
 			float4 sample_weight = exp(-euclidean_distance / h);	
 
-			*target_weight = max(*target_weight, sample_weight);
+			*target_weight = target_min 
+						   ? min(*target_weight, sample_weight) 
+						   : max(*target_weight, sample_weight);
 			
 			sample_weight = (sample.x == target.x && sample.y == target.y && reweight_target_pixel) 
 						  ? 0.f 
