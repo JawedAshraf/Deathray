@@ -40,7 +40,7 @@ __kernel void NLMSingleFrameFourPixel(
 
 	float4 average = 0.f;
 	float4 weight = 0.f;
-	float4 weight_max = MAXFLOAT;
+	float4 target_weight = 0.f;
 	float4 filtered_pixels;
 
 	// Inside local memory the top-left corner of the tile is at (8,8)
@@ -57,7 +57,7 @@ __kernel void NLMSingleFrameFourPixel(
 									  target_tile);
 	}
 
-	Filter4(target,	h, sample_expand, target_window, target_tile, g_gaussian, 1, &average, &weight, &weight_max);
+	Filter4(target,	h, sample_expand, target_window, target_tile, g_gaussian, 1, &average, &weight, &target_weight);
 	filtered_pixels = average / weight;
 	if (correction) {
 		float4 original = ReadPixel4(target_plane, source, linear);
