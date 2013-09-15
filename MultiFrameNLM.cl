@@ -19,7 +19,7 @@ __kernel void NLMMultiFrameFourPixel(
 	const		int			linear,					// process plane in linear space instead of gamma space
 	global 		float4		*intermediate_average,	// intermediate average for 4 pixels
 	global 		float4		*intermediate_weight,	// intermediate weight for 4 pixels
-	global		float4		*intermediate_max) {	// intermediate maximum weights for 4 pixels
+	global		float4		*intermediate_target) {	// intermediate target weights for 4 pixels
 
 	// Each work group produces 1024 filtered pixels, organised as a tile
 	// of 32x32, for a single iteration of multi-pass filtering. Each 
@@ -39,8 +39,9 @@ __kernel void NLMMultiFrameFourPixel(
 	// Input plane contains pixels as uchars. UNORM8 format is defined,
 	// so a read converts uchar into a normalised float of range 0.f to 1.f. 
 	// 
-	// Destination is a pair of float4 formatted buffers for average 
-	// (weighted running sum) and weight (running sum of weights).
+	// Destination is a triplet of float4 formatted buffers for average 
+	// (weighted running sum), weight (running sum of weights) and
+	// target weight (weight that will be used at end for target pixel).
 
 	__local float tile[TILE_SIDE * TILE_SIDE];
 
@@ -71,14 +72,14 @@ __kernel void NLMMultiFrameFourPixel(
 	int linear_address = source.y * intermediate_width + source.x;
 	float4 average = intermediate_average[linear_address];
 	float4 weight = intermediate_weight[linear_address];
-	float4 weight_max = intermediate_max[linear_address];
+	float4 target_weight = intermediate_target[linear_address];
 
-	Filter4(target, h, sample_expand, target_window, tile, g_gaussian, sample_equals_target, &average, &weight, &weight_max);
+	Filter4(target, h, sample_expand, target_window, tile, g_gaussian, sample_equals_target, &average, &weight, &target_weight);
 
 	if (target.y < height) {
 		intermediate_average[linear_address] = average;
 		intermediate_weight[linear_address] = weight;
-		intermediate_max[linear_address] = weight_max;
+		intermediate_target[linear_address] = target_weight;
 	}
 }
 
