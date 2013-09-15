@@ -18,6 +18,7 @@ __kernel void NLMMultiFrameFourPixel(
 	const		int			intermediate_width,		// width, in float4s, of intermediate buffers
 	const		int			linear,					// process plane in linear space instead of gamma space
 	const		int			target_min,				// target pixel is weighted using minimum weight of samples, not maximum
+	const		int			balanced,				// balanced tonal range de-noising
 	global 		float4		*intermediate_average,	// intermediate average for 4 pixels
 	global 		float4		*intermediate_weight,	// intermediate weight for 4 pixels
 	global		float4		*intermediate_target) {	// intermediate target weights for 4 pixels
@@ -75,7 +76,7 @@ __kernel void NLMMultiFrameFourPixel(
 	float4 weight = intermediate_weight[linear_address];
 	float4 target_weight = intermediate_target[linear_address];
 
-	Filter4(target, h, sample_expand, target_window, tile, g_gaussian, sample_equals_target, target_min, &average, &weight, &target_weight);
+	Filter4(target, h, sample_expand, target_window, tile, g_gaussian, sample_equals_target, target_min, balanced, &average, &weight, &target_weight);
 
 	if (target.y < height) {
 		intermediate_average[linear_address] = average;

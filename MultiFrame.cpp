@@ -38,7 +38,8 @@ result MultiFrame::Init(
 	const	int				&sample_expand,
 	const	int				&linear,
 	const	int				&correction,
-	const	int				&target_min) {
+	const	int				&target_min,
+	const	int				&balanced) {
 
 	if (device_id >= g_device_count) return FILTER_ERROR;
 
@@ -58,7 +59,7 @@ result MultiFrame::Init(
 
 	status = InitBuffers();
 	if (status != FILTER_OK) return status;
-	status = InitKernels(sample_expand, linear, correction);
+	status = InitKernels(sample_expand, linear, correction, balanced);
 	if (status != FILTER_OK) return status;
 	status = InitFrames();
 
@@ -88,7 +89,8 @@ result MultiFrame::InitBuffers() {
 result MultiFrame::InitKernels(
 	const int &sample_expand,
 	const int &linear,
-	const int &correction) {
+	const int &correction,
+	const int &balanced) {
 	NLM_kernel_ = CLKernel(device_id_, "NLMMultiFrameFourPixel");
 	NLM_kernel_.SetNumberedArg(3, sizeof(int), &width_);
 	NLM_kernel_.SetNumberedArg(4, sizeof(int), &height_);
@@ -98,9 +100,10 @@ result MultiFrame::InitKernels(
 	NLM_kernel_.SetNumberedArg(8, sizeof(int), &intermediate_width_);
 	NLM_kernel_.SetNumberedArg(9, sizeof(int), &linear);
 	NLM_kernel_.SetNumberedArg(10, sizeof(int), &target_min_);
-	NLM_kernel_.SetNumberedArg(11, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(averages_));
-	NLM_kernel_.SetNumberedArg(12, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_));
-	NLM_kernel_.SetNumberedArg(13, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(target_weights_));
+	NLM_kernel_.SetNumberedArg(11, sizeof(int), &balanced);
+	NLM_kernel_.SetNumberedArg(12, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(averages_));
+	NLM_kernel_.SetNumberedArg(13, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_));
+	NLM_kernel_.SetNumberedArg(14, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(target_weights_));
 
 	const size_t set_local_work_size[2]		= {8, 32};
 	const size_t set_scalar_global_size[2]	= {width_, height_};

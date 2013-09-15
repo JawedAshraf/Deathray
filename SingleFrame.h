@@ -35,7 +35,8 @@ public:
 		const	int		&sample_expand,
 		const	int		&linear,
 		const	int		&correction,
-		const	int		&target_min);
+		const	int		&target_min,
+		const	int		&balanced);
 
 	// CopyTo
 	// Copy the plane from host to device.

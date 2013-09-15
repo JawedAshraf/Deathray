@@ -34,7 +34,8 @@ result SingleFrame::Init(
 	const	int		&sample_expand,
 	const	int		&linear,
 	const	int		&correction,
-	const	int		&target_min) {
+	const	int		&target_min,
+	const	int		&balanced) {
 
 	if (device_id >= g_device_count) return FILTER_ERROR;
 
@@ -49,8 +50,8 @@ result SingleFrame::Init(
 
 	if (width_ == 0 || height_ == 0 || src_pitch_ == 0 || dst_pitch_ == 0 || h == 0 ) return FILTER_INVALID_PARAMETER;
 
-	status = g_devices[0].buffers_.AllocPlane(cq_, width_, height_, &source_plane_);
-	status = max(status, g_devices[0].buffers_.AllocPlane(cq_, width_, height_, &dest_plane_));
+	status = g_devices[device_id_].buffers_.AllocPlane(cq_, width_, height_, &source_plane_);
+	status = max(status, g_devices[device_id_].buffers_.AllocPlane(cq_, width_, height_, &dest_plane_));
 	if (status != FILTER_OK) return status;
 
 	kernel_ = CLKernel(device_id_, "NLMSingleFrameFourPixel");
@@ -64,6 +65,7 @@ result SingleFrame::Init(
 	kernel_.SetArg(sizeof(int), &linear);
 	kernel_.SetArg(sizeof(int), &correction);
 	kernel_.SetArg(sizeof(int), &target_min);
+	kernel_.SetArg(sizeof(int), &balanced);
 	kernel_.SetArg(sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(dest_plane_));
 
 	if (kernel_.arguments_valid()) {

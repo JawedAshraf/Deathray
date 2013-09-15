@@ -14,6 +14,7 @@ void Filter4(
 	constant	float	*gaussian,				// 49 weights of guassian kernel
 	const		int		reweight_target_pixel,	// when target plane is the sampling plane, the target pixel is reweighted
 	const		int		target_min,				// target pixel is weighted using minimum weight of samples, not maximum
+	const		int		balanced,				// balanced tonal range de-noising
 				float4	*all_samples_average,	// running sum of weighted pixel values
 				float4	*all_samples_weight,	// running sum of weights
 				float4  *target_weight) {		// weight chosen from across all sample planes that will be used for target pixel
@@ -34,6 +35,8 @@ void Filter4(
 	int2 sample_end	  = (int2)(min(target.x + sample_radius, 41), min(target.y + sample_radius, 44));
 
 	float4 sample_centre_pixel;
+	const float4 invert = 1.f;					// bias difference with an inversion...
+	const float4 factor = balanced ? 0.5f: 0.f;	// ... and range limiter, towards highlights and away from shadows 
 	int2 sample;
 	for (sample.y = sample_start.y; sample.y <= sample_end.y; ++sample.y) {
 		for (sample.x = sample_start.x; sample.x <= sample_end.x; ++sample.x) {
@@ -45,22 +48,22 @@ void Filter4(
 													   sample.y + y, 
 													   sample_tile);
 
-				float4 diff = target_window[target_row].s0123 - sample_window_row.s0123;
+				float4 diff = (invert - factor * target_window[target_row].s0123) * (target_window[target_row].s0123 - sample_window_row.s0123);
 				euclidean_distance += gaussian[gaussian_position] * (diff * diff);
-				diff = target_window[target_row].s6789 - sample_window_row.s6789;
+				diff = (invert - factor * target_window[target_row].s6789) * (target_window[target_row].s6789 - sample_window_row.s6789);
 				euclidean_distance += gaussian[gaussian_position] * (diff * diff);
 
-				diff = target_window[target_row].s1234 - sample_window_row.s1234;
+				diff = (invert - factor * target_window[target_row].s1234) * (target_window[target_row].s1234 - sample_window_row.s1234);
 				euclidean_distance += gaussian[gaussian_position + 1] * (diff * diff);
-				diff = target_window[target_row].s5678 - sample_window_row.s5678;
+				diff = (invert - factor * target_window[target_row].s5678) * (target_window[target_row].s5678 - sample_window_row.s5678);
 				euclidean_distance += gaussian[gaussian_position + 1] * (diff * diff);
 
-				diff = target_window[target_row].s2345 - sample_window_row.s2345;
+				diff = (invert - factor * target_window[target_row].s2345) * (target_window[target_row].s2345 - sample_window_row.s2345);
 				euclidean_distance += gaussian[gaussian_position + 2] * (diff * diff);
-				diff = target_window[target_row].s4567 - sample_window_row.s4567;
+				diff = (invert - factor * target_window[target_row].s4567) * (target_window[target_row].s4567 - sample_window_row.s4567);
 				euclidean_distance += gaussian[gaussian_position + 2] * (diff * diff);
 
-				diff = target_window[target_row].s3456 - sample_window_row.s3456;
+				diff = (invert - factor * target_window[target_row].s3456) * (target_window[target_row].s3456 - sample_window_row.s3456);
 				euclidean_distance += gaussian[gaussian_position + 3] * (diff * diff);
 
 				gaussian_position += 7;

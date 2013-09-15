@@ -16,6 +16,7 @@ __kernel void NLMSingleFrameFourPixel(
 	const		int			linear,					// process plane in linear space instead of gamma space
 	const		int			correction,				// apply a post-filtering correction
 	const		int			target_min,				// target pixel is weighted using minimum weight of samples, not maximum
+	const		int			balanced,				// balanced tonal range de-noising
 	write_only 	image2d_t 	destination_plane) {	// filtered result
 	// Each work group produces 1024 filtered pixels, organised as a tile
 	// of 32x32.
@@ -58,7 +59,7 @@ __kernel void NLMSingleFrameFourPixel(
 									  target_tile);
 	}
 
-	Filter4(target,	h, sample_expand, target_window, target_tile, g_gaussian, 1, target_min, &average, &weight, &target_weight);
+	Filter4(target,	h, sample_expand, target_window, target_tile, g_gaussian, 1, target_min, balanced, &average, &weight, &target_weight);
 	filtered_pixels = average / weight;
 	if (correction) {
 		float4 original = ReadPixel4(target_plane, source, linear);
