@@ -165,7 +165,7 @@ value for each in brackets:
              a minimum. This results in more even filtering across
              the tonal range from shadows to highlights.
 			 
-			 The standard NLM algorithm gives the pixel being filtered
+             The standard NLM algorithm gives the pixel being filtered
              the maximum weight of all. A refinment of the algorithm
              is to give the pixel being filtered the maximum weight
              derived from all the other pixels that were inspected.
