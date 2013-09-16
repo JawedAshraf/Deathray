@@ -16,8 +16,12 @@ __kernel void NLMMultiFrameFourPixel(
 	const		int			sample_expand,			// factor to expand sample radius
 	constant	float		*g_gaussian,			// 49 weights of guassian kernel
 	const		int			intermediate_width,		// width, in float4s, of intermediate buffers
+	const		int			linear,					// process plane in linear space instead of gamma space
+	const		int			target_min,				// target pixel is weighted using minimum weight of samples, not maximum
+	const		int			balanced,				// balanced tonal range de-noising
 	global 		float4		*intermediate_average,	// intermediate average for 4 pixels
-	global 		float4		*intermediate_weight) {	// intermediate weight for 4 pixels
+	global 		float4		*intermediate_weight,	// intermediate weight for 4 pixels
+	global		float4		*intermediate_target) {	// intermediate target weights for 4 pixels
 
 	// Each work group produces 1024 filtered pixels, organised as a tile
 	// of 32x32, for a single iteration of multi-pass filtering. Each 
@@ -37,8 +41,9 @@ __kernel void NLMMultiFrameFourPixel(
 	// Input plane contains pixels as uchars. UNORM8 format is defined,
 	// so a read converts uchar into a normalised float of range 0.f to 1.f. 
 	// 
-	// Destination is a pair of float4 formatted buffers for average 
-	// (weighted running sum) and weight (running sum of weights).
+	// Destination is a triplet of float4 formatted buffers for average 
+	// (weighted running sum), weight (running sum of weights) and
+	// target weight (weight that will be used at end for target pixel).
 
 	__local float tile[TILE_SIDE * TILE_SIDE];
 
@@ -50,7 +55,7 @@ __kernel void NLMMultiFrameFourPixel(
 	int2 target = (int2)((local_id.x << 2) + 8, local_id.y + 8);
 
 	// The tile is 48x48 pixels which is entirely filled from the source
-	FetchAndMirror48x48(target_plane, width, height, local_id, source, tile) ;
+	FetchAndMirror48x48(target_plane, width, height, local_id, source, linear, tile) ;
 
 	// Populate the 10x7 target window from the tile
 	int kernel_radius = 3;
@@ -64,17 +69,19 @@ __kernel void NLMMultiFrameFourPixel(
 	// Most planes are planes other than the target plane, which need
 	// to be fetched into the tile for sampling
 	if (!sample_equals_target)
-		FetchAndMirror48x48(sample_plane, width, height, local_id, source, tile);
+		FetchAndMirror48x48(sample_plane, width, height, local_id, source, linear, tile);
 
 	int linear_address = source.y * intermediate_width + source.x;
 	float4 average = intermediate_average[linear_address];
 	float4 weight = intermediate_weight[linear_address];
+	float4 target_weight = intermediate_target[linear_address];
 
-	Filter4(target, h, sample_expand, target_window, tile, g_gaussian, sample_equals_target, &average, &weight);
+	Filter4(target, h, sample_expand, target_window, tile, g_gaussian, sample_equals_target, target_min, balanced, &average, &weight, &target_weight);
 
 	if (target.y < height) {
 		intermediate_average[linear_address] = average;
 		intermediate_weight[linear_address] = weight;
+		intermediate_target[linear_address] = target_weight;
 	}
 }
 
@@ -84,6 +91,8 @@ __kernel void NLMFinalise(
 	const		global 		float4		*intermediate_average,	// final average for 4 pixels
 	const		global 		float4		*intermediate_weight,	// final weight for 4 pixels
 	const					int			intermediate_width,		// width, in float4s, of intermediate buffers
+	const					int			linear,					// process plane in linear space instead of gamma space
+	const					int			correction,				// apply a post-filtering correction
 	write_only 				image2d_t 	destination_plane) {	// final result
 	
 	// Computes the final pixel value based upon the average and weight
@@ -105,20 +114,16 @@ __kernel void NLMFinalise(
 
 	float4 filtered_pixels = average / weight;
 
-#if 1
-	const sampler_t plane = CLK_NORMALIZED_COORDS_FALSE |
-							CLK_ADDRESS_CLAMP |
-							CLK_FILTER_NEAREST;
+	if (correction) {
+		float4 original = ReadPixel4(target_plane, destination, linear);
 
-	float4 original = read_imagef(target_plane, plane, destination);
+		float4 difference = filtered_pixels - original;
+		float4 correction = (difference * original * original) - 
+							((difference * original) * (difference * original));
 
-	float4 difference = filtered_pixels - original;
-	float4 correction = (difference * original * original) - 
-					    ((difference * original) * (difference * original));
-
-	filtered_pixels = filtered_pixels - correction;
-#endif
-	write_imagef(destination_plane, destination, filtered_pixels);
+		filtered_pixels = filtered_pixels - correction;
+	}
+	WritePixel4(filtered_pixels, destination, linear, destination_plane);
 }
 
 

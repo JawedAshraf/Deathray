@@ -5,8 +5,6 @@
  * Copyright 2013, Jawed Ashraf - Deathray@cupidity.f9.co.uk
  */
 
-#include <math.h>
-
 #include "device.h"
 #include "buffer.h"
 #include "buffer_map.h"
@@ -37,7 +35,11 @@ result MultiFrame::Init(
 	const	int				&src_pitch,
 	const	int				&dst_pitch,
 	const	float			&h,
-	const	int				&sample_expand) {
+	const	int				&sample_expand,
+	const	int				&linear,
+	const	int				&correction,
+	const	int				&target_min,
+	const	int				&balanced) {
 
 	if (device_id >= g_device_count) return FILTER_ERROR;
 
@@ -51,12 +53,13 @@ result MultiFrame::Init(
 	dst_pitch_			= dst_pitch;
 	h_					= h;
 	cq_					= g_devices[device_id_].cq();
+	target_min_			= target_min;
 
 	if (width_ == 0 || height_ == 0 || src_pitch_ == 0 || dst_pitch_ == 0 || h == 0 ) return FILTER_INVALID_PARAMETER;
 
 	status = InitBuffers();
 	if (status != FILTER_OK) return status;
-	status = InitKernels(sample_expand);
+	status = InitKernels(sample_expand, linear, correction, balanced);
 	if (status != FILTER_OK) return status;
 	status = InitFrames();
 
@@ -75,13 +78,19 @@ result MultiFrame::InitBuffers() {
 	if (status != FILTER_OK) return status;
 	status = g_devices[device_id_].buffers_.AllocBuffer(cq_, bytes, &weights_);
 	if (status != FILTER_OK) return status;
+	status = g_devices[device_id_].buffers_.AllocBuffer(cq_, bytes, &target_weights_);
+	if (status != FILTER_OK) return status;
 
 	status = g_devices[device_id_].buffers_.AllocPlane(cq_, width_, height_, &dest_plane_);
 
 	return status;
 }
 
-result MultiFrame::InitKernels(const int &sample_expand) {
+result MultiFrame::InitKernels(
+	const int &sample_expand,
+	const int &linear,
+	const int &correction,
+	const int &balanced) {
 	NLM_kernel_ = CLKernel(device_id_, "NLMMultiFrameFourPixel");
 	NLM_kernel_.SetNumberedArg(3, sizeof(int), &width_);
 	NLM_kernel_.SetNumberedArg(4, sizeof(int), &height_);
@@ -89,8 +98,12 @@ result MultiFrame::InitKernels(const int &sample_expand) {
 	NLM_kernel_.SetNumberedArg(6, sizeof(int), &sample_expand);
 	NLM_kernel_.SetNumberedArg(7, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(g_gaussian));
 	NLM_kernel_.SetNumberedArg(8, sizeof(int), &intermediate_width_);
-	NLM_kernel_.SetNumberedArg(9, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(averages_));
-	NLM_kernel_.SetNumberedArg(10, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_));
+	NLM_kernel_.SetNumberedArg(9, sizeof(int), &linear);
+	NLM_kernel_.SetNumberedArg(10, sizeof(int), &target_min_);
+	NLM_kernel_.SetNumberedArg(11, sizeof(int), &balanced);
+	NLM_kernel_.SetNumberedArg(12, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(averages_));
+	NLM_kernel_.SetNumberedArg(13, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_));
+	NLM_kernel_.SetNumberedArg(14, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(target_weights_));
 
 	const size_t set_local_work_size[2]		= {8, 32};
 	const size_t set_scalar_global_size[2]	= {width_, height_};
@@ -109,7 +122,9 @@ result MultiFrame::InitKernels(const int &sample_expand) {
 	finalise_kernel_.SetNumberedArg(1, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(averages_));
 	finalise_kernel_.SetNumberedArg(2, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(weights_));
 	finalise_kernel_.SetNumberedArg(3, sizeof(int), &intermediate_width_);
-	finalise_kernel_.SetNumberedArg(4, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(dest_plane_));
+	finalise_kernel_.SetNumberedArg(4, sizeof(int), &linear);
+	finalise_kernel_.SetNumberedArg(5, sizeof(int), &correction);
+	finalise_kernel_.SetNumberedArg(6, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(dest_plane_));
 
 	if (finalise_kernel_.arguments_valid()) {
 		finalise_kernel_.set_work_dim(2);
@@ -141,9 +156,12 @@ result MultiFrame::InitFrames() {
 result MultiFrame::ZeroIntermediates() {
 	result status = FILTER_OK;
 
-	CLKernel Intermediates = CLKernel(device_id_, "Zero");
+	CLKernel Intermediates = CLKernel(device_id_, "Initialise");
+
+	float initialise = 0.f;
 
 	Intermediates.SetArg(sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(averages_));
+	Intermediates.SetArg(sizeof(cl_float), &initialise);
 
 	if (Intermediates.arguments_valid()) {
 		const size_t set_local_work_size[1]		= {256};
@@ -167,6 +185,20 @@ result MultiFrame::ZeroIntermediates() {
 	} else {
 		return FILTER_KERNEL_ARGUMENT_ERROR;
 	}
+
+	if (target_min_) {
+		initialise = CL_MAXFLOAT;
+		Intermediates.SetNumberedArg(1, sizeof(cl_float), &initialise);
+	}
+
+	Intermediates.SetNumberedArg(0, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(target_weights_));
+	if (Intermediates.arguments_valid()) {
+		status = Intermediates.Execute(cq_, NULL);
+		if (status != FILTER_OK) return status;
+	} else {
+		return FILTER_KERNEL_ARGUMENT_ERROR;
+	}
+
 	clFinish(cq_);
 	return status;						
 }
@@ -199,6 +231,19 @@ result MultiFrame::CopyTo(MultiFrameRequest *retrieved) {
 	return status;
 }
 
+result MultiFrame::ExecuteFrame(
+	const int &frame_id,
+	const bool &sample_equals_target,
+	cl_event &copying_target, 
+	cl_event *filter_events) {
+
+	cl_event executed;
+
+	result status = frames_[frame_id].Execute(sample_equals_target, &copying_target, &executed);
+	filter_events[frame_id] = executed;
+	return status;
+}
+
 result MultiFrame::Execute() {
 	result status = FILTER_OK;
 
@@ -206,7 +251,7 @@ result MultiFrame::Execute() {
 	int target_frame_id = (target_frame_number_ + temporal_radius_) % frames_.size();
 
 	int target_frame_plane; 		
-	cl_event copying_target, executed;
+	cl_event copying_target;
 	frames_[target_frame_id].Plane(&target_frame_plane, &copying_target);
 
 	NLM_kernel_.SetNumberedArg(0, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(target_frame_plane));
@@ -214,10 +259,13 @@ result MultiFrame::Execute() {
 	cl_event *filter_events = new cl_event[frames_.size()];
 	for (int i = 0; i < 2 * temporal_radius_ + 1; ++i) {
 		bool sample_equals_target = i == target_frame_id;
-		status = frames_[i].Execute(sample_equals_target, &copying_target, &executed);
-		filter_events[i] = executed;
-		if (status != FILTER_OK) return status;
+		if (!sample_equals_target) { // exclude the target frame so that it is processed last
+			status = ExecuteFrame(i, sample_equals_target, copying_target, filter_events);
+			if (status != FILTER_OK) return status;
+		}
 	}
+	status = ExecuteFrame(target_frame_id, true, copying_target, filter_events);
+	if (status != FILTER_OK) return status;
 
 	finalise_kernel_.SetNumberedArg(0, sizeof(cl_mem), g_devices[device_id_].buffers_.ptr(target_frame_plane));
 	status = finalise_kernel_.ExecuteWaitList(cq_, frames_.size(), filter_events, &executed_);

@@ -5,7 +5,6 @@
  * Copyright 2013, Jawed Ashraf - Deathray@cupidity.f9.co.uk
  */
 
-#include <math.h>
 #include <direct.h>
 
 #include "util.h"
@@ -124,7 +123,7 @@ result GetDeviceCount(int* device_count) {
 	}
 
 	cl_int	status = CL_SUCCESS;
-#if 0
+
 	status = clGetContextInfo(g_context, 
 							  CL_CONTEXT_NUM_DEVICES, 
 							  sizeof(cl_uint),
@@ -135,8 +134,7 @@ result GetDeviceCount(int* device_count) {
 		g_last_cl_error = status;
 		return FILTER_CONTEXT_NUMBER_DEVICES_FAILED;
 	}
-#endif
-	*device_count = 1;
+
 	return FILTER_OK;		
 }
 
@@ -232,7 +230,7 @@ result CompileAll(const int &device_count, const cl_device_id &devices) {
 	}
 
 	const int kernel_count = 4;
-	const string kernels[kernel_count] = {"Zero",
+	const string kernels[kernel_count] = {"Initialise",
 										  "NLMSingleFrameFourPixel",
 										  "NLMMultiFrameFourPixel",
 										  "NLMFinalise"

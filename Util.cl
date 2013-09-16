@@ -6,10 +6,80 @@
  */
 
 #define TILE_SIDE 53
+#define USE_SRGB_GAMMA_CURVE 1
 
-__kernel void Zero(__global float4 *A) {
+__kernel void Initialise(__global float4 *A, const float x) {
     int pos = get_global_id(0);
-	A[pos] = 0.f;
+	A[pos] = x;
+}
+
+// gamma_decode
+// Converts input from gamma space into linear space.
+float gamma_decode(float x) {
+#if USE_SRGB_GAMMA_CURVE
+	if (x <= 0.081f) return x/4.5f;
+	return native_powr(((x + 0.099f)/1.099f), 2.22222222f);
+#else
+	return native_powr(x, 2.22222222f);
+#endif
+}
+
+float4 gamma_decode4(float4 x) {
+	float4 de_gamma;
+
+	de_gamma.x = gamma_decode(x.x);
+	de_gamma.y = gamma_decode(x.y);
+	de_gamma.z = gamma_decode(x.z);
+	de_gamma.w = gamma_decode(x.w);
+
+	return de_gamma;
+}
+
+// gamma_encode
+// Converts input from linear space into gamma space.
+float gamma_encode(float x) {
+#if USE_SRGB_GAMMA_CURVE
+	if (x <= 0.018f) return 4.5f * x;
+	return 1.099f * native_powr(x, 0.45f) - 0.099f;
+#else
+	return native_powr(x, 0.45f);
+#endif
+}
+
+float4 gamma_encode4(float4 x) {
+	float4 en_gamma;
+
+	en_gamma.x = gamma_encode(x.x);
+	en_gamma.y = gamma_encode(x.y);
+	en_gamma.z = gamma_encode(x.z);
+	en_gamma.w = gamma_encode(x.w);
+
+	return en_gamma;
+}
+
+float4 ReadPixel4(
+	read_only 	image2d_t 	plane,	
+	const		int2		coordinates,
+	const		int			linear) {
+
+	const sampler_t frame = CLK_NORMALIZED_COORDS_FALSE |
+							CLK_ADDRESS_CLAMP |
+							CLK_FILTER_NEAREST;
+
+	float4 pixel = read_imagef(plane, frame, coordinates);
+	if (linear) pixel = gamma_decode4(pixel);
+	return pixel;
+}
+
+void WritePixel4(
+	const		float4 		pixel,
+	const		int2		coordinates,
+	const		int			linear,
+	write_only 	image2d_t 	plane) {
+
+	float4 write_pixel = pixel;
+	if (linear) write_pixel = gamma_encode4(pixel);
+	write_imagef(plane, coordinates, write_pixel);
 }
 
 void WriteTile4(
@@ -46,67 +116,6 @@ float16 ReadTile16(
 	return result;
 }
 
-float16 Unpack10PixelsAndNormalise(uint4 sixteen_pixels) {
-	// Unpack 10 pixels, which are packed into 128 bits as uchars,
-	// into 10 normalised pixels as floats. 
-	//
-	// Only 10 pixels are required from each row of a window.
-
-	uchar4 four_pixels;
-	float16 result;
-
-	four_pixels = as_uchar4(sixteen_pixels.x);
-
-	result.s0 = (float)four_pixels.x * 0.0039215686f;
-	result.s1 = (float)four_pixels.y * 0.0039215686f; 
-	result.s2 = (float)four_pixels.z * 0.0039215686f; 
-	result.s3 = (float)four_pixels.w * 0.0039215686f; 
-
-	four_pixels = as_uchar4(sixteen_pixels.y);
-
-	result.s4 = (float)four_pixels.x * 0.0039215686f; 
-	result.s5 = (float)four_pixels.y * 0.0039215686f; 
-	result.s6 = (float)four_pixels.z * 0.0039215686f; 
-	result.s7 = (float)four_pixels.w * 0.0039215686f; 
-                                
-	four_pixels = as_uchar4(sixteen_pixels.z);
-
-	result.s8 = (float)four_pixels.x * 0.0039215686f; 
-	result.s9 = (float)four_pixels.y * 0.0039215686f; 
-                                
-	return result;
-}
-
-uint4 Pack10PixelsIntoTargetRow(float16 sixteen_pixels) {
-	// Pack 10 float pixels into 10 uchars, stored as a uint4.
-	//
-	// Only 10 pixels are required for target window's row.
-
-	uchar4 four_pixels;
-	uint4 result;
-
-	four_pixels.x = (uchar)(sixteen_pixels.s0 * 255.f);
-	four_pixels.y = (uchar)(sixteen_pixels.s1 * 255.f);
-	four_pixels.z = (uchar)(sixteen_pixels.s2 * 255.f);
-	four_pixels.w = (uchar)(sixteen_pixels.s3 * 255.f);
-
-	result.x = as_uint(four_pixels);
-   
-	four_pixels.x = (uchar)(sixteen_pixels.s4 * 255.f);
-	four_pixels.y = (uchar)(sixteen_pixels.s5 * 255.f);
-	four_pixels.z = (uchar)(sixteen_pixels.s6 * 255.f);
-	four_pixels.w = (uchar)(sixteen_pixels.s7 * 255.f);
- 
-	result.y = as_uint(four_pixels);
-                                      
-	four_pixels.x = (uchar)(sixteen_pixels.s8 * 255.f);
-	four_pixels.y = (uchar)(sixteen_pixels.s9 * 255.f);
- 
-	result.z = as_uint(four_pixels);
-                         
-	return result;
-}
-
 void Coordinates32x32(
 	int2 *local_id,	// Work item
 	int2 *source) {	// Each work item processes 4 pixels from source as a single row uchar4/float4
@@ -127,6 +136,7 @@ void FetchAndMirror48x48(
 	const		int			height,			// height in pixels
 	const		int2		local_id,		// Work item
 	const		int2		source,			// coordinates
+	const		int			linear,			// process plane in linear space instead of gamma space
 	local		float		*tile) {		// existing block of local memory populated with 48x48 pixels
 	// Fetch pixels from source and populate a 48x48 tile of pixels.
 	//
@@ -137,11 +147,7 @@ void FetchAndMirror48x48(
 	// four edges of the frame the apron is filled, instead, with 
 	// pixels mirrored from just inside the frame.
 
-	const sampler_t plane = CLK_NORMALIZED_COORDS_FALSE |
-							CLK_ADDRESS_CLAMP |
-							CLK_FILTER_NEAREST;
-
-	float4 source_pixels = read_imagef(target_plane, plane, source);
+	float4 source_pixels = ReadPixel4(target_plane, source, linear);
 
 	write_mem_fence(CLK_LOCAL_MEM_FENCE);		
 
@@ -152,12 +158,12 @@ void FetchAndMirror48x48(
 	
 	if (local_id.y < 8 || local_id.y > 23) { // 8 top and bottom rows of apron are filled from adjacent tiles
 		int offset = (local_id.y < 8) ? -8 : 8;
-		source_pixels = read_imagef(target_plane, plane, source + (int2)(0, offset));
+		source_pixels = ReadPixel4(target_plane, source + (int2)(0, offset), linear);
 		WriteTile4(source_pixels, target.x, target.y + offset, tile); 
 	}	
 	if (local_id.x < 2 || local_id.x > 5) { // 8 columns at left and right
 		int offset = (local_id.x < 2) ? -2 : 2;
-		source_pixels = read_imagef(target_plane, plane, source + (int2)(offset, 0));
+		source_pixels = ReadPixel4(target_plane, source + (int2)(offset, 0), linear);
 		WriteTile4(source_pixels, target.x + (offset << 2), target.y, tile); 
 	}	
 	if (local_id.y < 8 || local_id.y > 23) { // 4 corners, each 8x8
@@ -165,7 +171,7 @@ void FetchAndMirror48x48(
 		offset.y = (local_id.y < 8) ? -8 : 8;
 		if (local_id.x < 2 || local_id.x > 5) {
 			offset.x = (local_id.x < 2) ? -2 : 2;
-			source_pixels = read_imagef(target_plane, plane, source + offset);
+			source_pixels = ReadPixel4(target_plane, source + offset, linear);
 			WriteTile4(source_pixels, target.x + (offset.x << 2), target.y + offset.y, tile);
 		}
 	}

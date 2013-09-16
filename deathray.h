@@ -14,7 +14,8 @@
 
 class deathray : public GenericVideoFilter {
 public:
-	deathray(PClip _child, double h_Y, double h_UV, int t_Y, int t_UV, double sigma, int sample_expand, IScriptEnvironment* env);
+
+	deathray(PClip _child, double h_Y, double h_UV, int t_Y, int t_UV, double sigma, int sample_expand, int linear, int correction, int target_min, int balanced, IScriptEnvironment* env);
 
 	~deathray(){};
 
@@ -29,7 +30,7 @@ private:
 	// SetupFilters
 	// Configure the global classes for single frame and multi
 	// frame filtering.
-	result SetupFilters();
+	result SetupFilters(const int &device_id);
 
 	// InitPointers
 	// Get the pointers for single frame filtering
@@ -50,7 +51,7 @@ private:
 	// SingleFrameInit
 	// Configure the plane-specific objects
 	// for single frame filtering
-	result SingleFrameInit();
+	result SingleFrameInit(const int &device_id);
 
 	// SingleFrameExecute
 	// Filter a single plane for any combination
@@ -60,7 +61,7 @@ private:
 	// MultiFrameInit
 	// Configure the plane-type specific objects
 	// for multi frame filtering
-	result MultiFrameInit();
+	result MultiFrameInit(const int &device_id);
 
 	// MultiFrameCopy
 	// Queries each plane type for the frame numbers
@@ -79,6 +80,10 @@ private:
 	int temporal_radius_UV_	;	// chroma temporal radius
 	float sigma_			;	// gaussian weights are computed based upon sigma
 	int sample_expand_		;	// factor by which the sample radius is expanded, e.g. 2 means sample radius of 6, since kernel has radius 3
+	int linear_				;	// process plane in linear space instead of gamma space when set to 1
+	int correction_			;	// apply a post-filtering correction
+	int target_min_			;	// target pixel is weighted using minimum weight of samples, not maximum
+	int balanced_			;	// balanced tonal range de-noising
 
 	// Following are standard Avisynth properties of environment, source and destination: frames and planes
 	IScriptEnvironment *env_;

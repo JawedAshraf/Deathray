@@ -5,7 +5,6 @@
  * Copyright 2013, Jawed Ashraf - Deathray@cupidity.f9.co.uk
  */
 
-#include <math.h>
 #include "CLKernel.h"
 #include "CLutil.h"
 #include "device.h"

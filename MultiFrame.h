@@ -33,7 +33,11 @@ public:
 		const	int				&src_pitch,
 		const	int				&dst_pitch,
 		const	float			&h,
-		const	int				&sample_expand);
+		const	int				&sample_expand,
+		const	int				&linear,
+		const	int				&correction,
+		const	int				&target_min,
+		const	int				&balanced);
 
 	// SupplyFrameNumbers
 	// Supplies a set of frame numbers, in object MultiFrameRequest
@@ -44,8 +48,15 @@ public:
 				MultiFrameRequest	*required);
 
 	// CopyTo
-	// MultiFrameRequest contains the frame numbers and host
-	// pointers of planes that have to be copied to device.
+	// Before processing each of the planes, all frames are
+	// copied to the device. Usually most frames will already
+	// be on the device. MultiFrameRequest defines the frame 
+	// numbers and host pointers of planes that have yet to
+	// be copied to the device.
+	//
+	// Also zeroes the intermediate buffers.
+	//
+	// Called once per filtered frame
 	result CopyTo(MultiFrameRequest *retrieved) ;
 	
 	// Execute
@@ -63,13 +74,18 @@ public:
 private:
 
 	// InitBuffers
-	// Create and zero the intermediate averages plus weights buffers and create the destination buffer.
+	// Create the intermediate averages, weights and maximum
+	// weights buffers and create the destination buffer.
 	result InitBuffers();
 
 	// InitKernels
 	// Configure global arguments for the filter and finalise kernels,
 	// arguments that won't change over the duration of clip processing.
-	result InitKernels(const int &sample_expand);
+	result InitKernels(
+		const int &sample_expand,
+		const int &linear,
+		const int &correction,
+		const int &balanced);
 
 	// InitFrames
 	// Create the Frame objects, one per step of the temporal filter.
@@ -78,6 +94,15 @@ private:
 	// ZeroIntermediates
 	// Before every new frame is processed the intermediate buffers must be zeroed.
 	result ZeroIntermediates();
+
+	// ExecuteFrame
+	// Process a single frame in the circular buffer of frames.
+	result ExecuteFrame(
+		const		int		&frame_id,
+		const		bool	&sample_equals_target,
+		cl_event			&copying_target, 
+		cl_event			*filter_events);
+
 
 	// Frame
 	// An object for each of the 2 * temporal_radius + 1 frames, all of which are processed separately.
@@ -98,7 +123,7 @@ private:
 		// Tell the frame object to initialise its buffer
 		result Init(
 			const	int					&device_id,
-				cl_command_queue	*cq, 
+			cl_command_queue			*cq, 
 			const	CLKernel			&NLM_kernel,
 			const	int					&width, 
 			const	int					&height, 
@@ -156,13 +181,15 @@ private:
 	int target_frame_number_	;	// frame to be filtered
 	int dest_plane_				;	// dedicated buffer for destination plane
 	int averages_				;	// intermediate averages buffer
-	int	weights_				;	// intermediate weights buffer
+	int weights_				;	// intermediate weights buffer
+	int target_weights_			;	// intermediate target weights buffer
 	int width_					;	// width of plane's content
 	int height_					;	// height of plane's content
 	int src_pitch_				;	// host plane format allows each row to be potentially longer than width_
 	int dst_pitch_				;	// host plane format allows each row to be potentially longer than width_
 	float h_					;	// strength of noise reduction
 	cl_command_queue cq_		;	// device object for queue management and synchronisation
+	int target_min_				;	// target pixel is weighted using minimum weight of samples, not maximum
 	size_t intermediate_width_	;	// width of intermediate buffers, rounded-up to 32 pixels, expressed as 4-pixel strips
 	size_t intermediate_height_	;	// height of intermediate buffers, rounded-up to 32 rows
 	CLKernel NLM_kernel_		;	// kernel that performs NLM computations, once per sample plane
