@@ -23,16 +23,21 @@ Avisynth.
 Compatibility
 =============
 
-The following software configuration is known to work:
+The following software configurations are known to work:
 
- - Avisynth 2.5.8
- - AMD Stream SDK 2.3
- - AMD Catalyst 10.12
- - Windows Vista 64-bit 
+ - Avisynth 2.5.8         and 2.6 MT (SEt's)
+ - AMD Stream SDK 2.3     and AMD APP SDK 2.8.1
+ - AMD Catalyst 10.12     and 13.8 beta 2
+ - Windows Vista 64-bit   and Windows 8 64-bit
+ 
+ - NVidia software is known to work but drivers unknown
 
-The following hardware configuration is known to work:
+The following hardware configurations are known to work:
 
- - ATI HD 5870 graphics card
+ - ATI HD 5870
+ - AMD HD 7770
+ - AMD HD 7970
+ - Various NVidia, models unknown
 
 Known non-working hardware:
 
@@ -151,6 +156,35 @@ value for each in brackets:
              to limit the amount of filtering per pixel.
 			 
              When set to false the naked NLM algorithm is used.
+			 
+ z (false) - target pixel tends towards zero-weighted.
+ 
+             true or false.
+
+             Reduces the weight of the pixel being filtered to
+             a minimum. This results in more even filtering across
+             the tonal range from shadows to highlights.
+			 
+			 The standard NLM algorithm gives the pixel being filtered
+             the maximum weight of all. A refinment of the algorithm
+             is to give the pixel being filtered the maximum weight
+             derived from all the other pixels that were inspected.
+			 
+             This maximum of other pixels' weights is used when z is
+             set to false.
+			 
+             When set to true, the minimum of other pixels' weights is
+             used instead.
+
+ b (false) - balanced weighting.
+ 
+             true or false.
+
+             Attempts to balance weighting of pixels based upon their
+             luma value.
+			 
+             This parameter is not applied to chroma planes.
+			 
 			 
 Avisynth MT
 ===========
