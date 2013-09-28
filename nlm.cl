@@ -85,7 +85,7 @@ void Filter4(
 			*all_samples_average += sample_weight * sample_centre_pixel;
 		}
 	}
-
+	*target_weight = max(*target_weight, 0.004f);
 	*all_samples_weight += reweight_target_pixel ? *target_weight : 0.f;
 
 	sample_centre_pixel = ReadTile4(target.x, target.y, sample_tile);
