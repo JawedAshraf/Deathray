@@ -51,7 +51,8 @@ result SingleFrame::Init(
 	if (width_ == 0 || height_ == 0 || src_pitch_ == 0 || dst_pitch_ == 0 || h == 0 ) return FILTER_INVALID_PARAMETER;
 
 	status = g_devices[device_id_].buffers_.AllocPlane(cq_, width_, height_, &source_plane_);
-	status = max(status, g_devices[device_id_].buffers_.AllocPlane(cq_, width_, height_, &dest_plane_));
+	if (status != FILTER_OK) return status;
+	status = g_devices[device_id_].buffers_.AllocPlane(cq_, width_, height_, &dest_plane_);
 	if (status != FILTER_OK) return status;
 
 	kernel_ = CLKernel(device_id_, "NLMSingleFrameFourPixel");
