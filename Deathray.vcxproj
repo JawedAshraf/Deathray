@@ -74,6 +74,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <PreprocessorDefinitions>CL_USE_DEPRECATED_OPENCL_1_1_APIS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(AMDAPPSDKROOT)\lib\x86\OpenCL.lib;%(AdditionalDependencies)</AdditionalDependencies>
