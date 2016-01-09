@@ -69,33 +69,49 @@ char* GetCLErrorString(const cl_int &err) {
 	}
 }
 
-result GetPlatform(cl_platform_id* platform) {
-	*platform = NULL;
+result GetPlatform(cl_platform_id *platform) {
+    *platform = NULL;
 
-	cl_int			status;	
-	cl_uint			platform_count;
-	cl_platform_id* platforms;
+    cl_int          status;    
+    cl_uint         platform_count;
+    cl_platform_id  *platforms;
 
-	status = clGetPlatformIDs(0, NULL, &platform_count);
-	if (status != CL_SUCCESS) {
-		g_last_cl_error = status;
-		return FILTER_NO_PLATFORM;
-	}
+    status = clGetPlatformIDs(0, NULL, &platform_count);
+    if (status != CL_SUCCESS) {
+        g_last_cl_error = status;
+        return FILTER_NO_PLATFORM;
+    }
 
-	if (platform_count > 0)	{
-		platforms = static_cast<cl_platform_id *> (malloc(platform_count * sizeof(cl_platform_id)));
+    char *profile_vendor = NULL;
+    size_t profile_list_size;
 
-		status = clGetPlatformIDs(platform_count, platforms, NULL);
-		if (status != CL_SUCCESS) {
-			g_last_cl_error = status;
-			return FILTER_NO_PLATFORM;
-		}
+    if (platform_count > 0)    {
+        platforms = static_cast<cl_platform_id*> (malloc(platform_count * sizeof(cl_platform_id)));
 
-		*platform = platforms[0];
-		return FILTER_OK;		
-	} 
+        status = clGetPlatformIDs(platform_count, platforms, NULL);
+        if (status != CL_SUCCESS) {
+            g_last_cl_error = status;
+            return FILTER_NO_PLATFORM;
+        }
 
-	return FILTER_NO_PLATFORM;
+        int chosen_platform = -1;
+        for (cl_uint i = 0; i < platform_count; ++i) {
+            clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, NULL, profile_vendor, &profile_list_size);
+            profile_vendor = static_cast<char*> (malloc(profile_list_size));
+            clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, profile_list_size, profile_vendor, NULL);
+
+            if (strstr(profile_vendor, "Intel") != NULL) {
+                continue;
+            } else {
+                chosen_platform = i;
+                break;
+            }
+        }
+        *platform = platforms[chosen_platform];
+       return FILTER_OK;     
+    } 
+
+    return FILTER_NO_PLATFORM;
 }
 
 result SetContext(const cl_platform_id &platform) {
