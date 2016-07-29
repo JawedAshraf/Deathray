@@ -41,9 +41,9 @@
 #ifndef __AVISYNTH_6_H__
 #define __AVISYNTH_6_H__
 
-#include <avs/config.h>
-#include <avs/capi.h>
-#include <avs/types.h>
+#include "avs/config.h"
+#include "avs/capi.h"
+#include "avs/types.h"
 
 
 enum { AVISYNTH_INTERFACE_VERSION = 6 };
@@ -942,7 +942,7 @@ public:
 
 
 
-#include <avs/cpuid.h>
+#include "avs/cpuid.h"
 
 
 
@@ -1128,7 +1128,7 @@ IScriptEnvironment* __stdcall CreateScriptEnvironment(int version = AVISYNTH_INT
 
 
 // C exports
-#include <avs/capi.h>
+#include "avs/capi.h"
 AVSC_API(IScriptEnvironment2*, CreateScriptEnvironment2)(int version = AVISYNTH_INTERFACE_VERSION);
 
 
