@@ -16,6 +16,9 @@
 
 #define DEVICE 0 // Filter architecture supports use of a single device
 
+// Declare and initialise server pointers static storage.
+const AVS_Linkage *AVS_linkage = 0;
+
 device	*g_devices		= NULL;
 int		g_device_count	= 0;
 
