@@ -364,8 +364,14 @@ AVSValue __cdecl CreateDeathray(AVSValue args, void *user_data, IScriptEnvironme
 						env);
 }
 
-extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit2(IScriptEnvironment *env) {
+extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, AVS_Linkage* vectors) {
 
-    env->AddFunction("deathray", "c[hY]f[hUV]f[tY]i[tUV]i[s]f[x]i[l]b[c]b[z]b[b]b", CreateDeathray, 0);
-    return "Deathray";
+  // Save the server pointers.
+  AVS_linkage = vectors;
+
+  // Add the name of our function
+  env->AddFunction("deathray", "c[hY]f[hUV]f[tY]i[tUV]i[s]f[x]i[l]b[c]b[z]b[b]b", CreateDeathray, 0);
+
+  // Return plugin text identifier.
+  return "Deathray";
 }
